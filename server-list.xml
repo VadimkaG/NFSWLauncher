@@ -4,6 +4,10 @@
     protocol="soapbox"
     >World Evolved</server>
   <server
+    ip="78.107.251.45:8680"
+    protocol="soapbox"
+    >World Evolved NEW IP</server>
+  <server
     ip="145.239.5.103:8680"
     protocol="soapbox"
     >World Online PL</server>
