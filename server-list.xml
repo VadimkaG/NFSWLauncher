@@ -16,10 +16,6 @@
     protocol="soapbox"
     >Apex</server>
   <server
-    ip="54.37.72.198:8680"
-    protocol="soapbox"
-    >The World Is Ours</server>
-  <server
     ip="180.97.28.12:8680"
     protocol="soapbox"
     >Zesty's Server</server>
