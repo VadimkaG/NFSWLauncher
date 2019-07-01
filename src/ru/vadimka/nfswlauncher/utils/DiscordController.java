@@ -22,11 +22,11 @@ public abstract class DiscordController {
 		is_started = true;
 		
 		handlers.ready = (user) -> {
-			Log.print("Discord RPC инициализирован.");
+			
 		};
 		
 		handlers.disconnected = (i, str) -> {
-			Log.print("Discord RPC завершен.");
+			
 		};
 		
 		lib.Discord_Initialize(applicationId, handlers, true, null);
