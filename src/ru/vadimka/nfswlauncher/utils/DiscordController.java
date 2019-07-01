@@ -17,7 +17,7 @@ public abstract class DiscordController {
 	public static void load() {
 		lib = DiscordRPC.INSTANCE;
 		presence = new DiscordRichPresence();
-		String applicationId = "569591780270669855";
+		String applicationId = ""; // Тут нужно вставить ваш Discord RPC ID
 		DiscordEventHandlers handlers = new DiscordEventHandlers();
 		is_started = true;
 		
