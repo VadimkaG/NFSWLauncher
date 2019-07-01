@@ -11,107 +11,125 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.util.ArrayList;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-
-import org.w3c.dom.Document;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
+import java.util.logging.Level;
+import java.util.logging.LogManager;
+import java.util.logging.Logger;
 
 import ru.vadimka.nfswlauncher.ValueObjects.Account;
 import ru.vadimka.nfswlauncher.ValueObjects.ServerVO;
-import ru.vadimka.nfswlauncher.actions.ChangeLocaleAction;
-import ru.vadimka.nfswlauncher.actions.ClientConfigAction;
-import ru.vadimka.nfswlauncher.locales.Locale;
+import ru.vadimka.nfswlauncher.client.Game;
 import ru.vadimka.nfswlauncher.protocol.RacingWorld;
 import ru.vadimka.nfswlauncher.protocol.ServerInterface;
 import ru.vadimka.nfswlauncher.protocol.Soapbox;
 import ru.vadimka.nfswlauncher.protocol.SoapboxLocked;
-import ru.vadimka.nfswlauncher.theme.Frame;
-import ru.vadimka.nfswlauncher.theme.customcomponents.ComboBoxC;
-import ru.vadimka.nfswlauncher.utils.AsyncTasksUtils;
+import ru.vadimka.nfswlauncher.theme.GUI;
+import ru.vadimka.nfswlauncher.theme.GraphActions;
+import ru.vadimka.nfswlauncher.theme.GraphModule;
+import ru.vadimka.nfswlauncher.theme.LogWindow;
 import ru.vadimka.nfswlauncher.utils.DiscordController;
 import ru.vadimka.nfswlauncher.utils.HTTPRequest;
-import ru.vadimka.nfswlauncher.utils.RWAC;
 
 public abstract class Main {
+	private static Logger logger;
 	public static Locale locale;
 	public static ServerVO server;
 	public static Account account;
-	public static Frame frame;
+	public static GraphModule frame = null;
 	public static Game game;
-	public static void main(String[] args) {
-		Log.init();
-		Log.print("Версия программы "+Config.VERSION+".");
-		Log.print("Версия ОС "+System.getProperty("os.name")+", "+System.getProperty("os.arch")+".");
-		Log.print("Инициализация...");
-		
-		Config.load();
-		Log.print("Загрузка конфига завершена.");
-		
-		if (Config.LANGUAGE.equalsIgnoreCase("")) {
-			Config.LANGUAGE = getSystemLanguage();
-			Config.save();
+	public static void main(String[] args) {init();}
+	public static void init() {
+		Main.getWorkDir();
+		LogManager.getLogManager().reset();
+		logger = LogManager.getLogManager().getLogger("");
+		if (Config.MODE_LOG_CONSOLE)
+			logger.addHandler(new Log.LogHandler());
+		if (Config.MODE_LOG_FILE) {
+			logger.addHandler(new Log.FLogHandler(Log.getLogFilePath()));
 		}
 		
-		RWAC.load();
-		Log.print("RWAC загружен.");
-		
-		locale = new Locale(Config.LANGUAGE);
-		locale.load();
-		Log.print("Загрузка языка завершена.");
-		
-		ClientConfigAction.call();
-		frame = new Frame();
-		updateLocales();
-		frame.setVisible(true);
-		Log.print("Загрузка окна завершена.");
-		
-		account = new Account(new ServerVO(Config.SERVER_LINK, Config.SERVER_NAME), Config.USER_LOGIN, Config.USER_PASSWORD);
-		account.getServer().setProtocol(genProtocolByName(Config.SERVER_PROTOCOL, account.getServer()));
 		try {
-			account.getServer().getProtocol().login(account);
-			server = account.getServer();
-			server.getProtocol().getResponse();
-			Log.print("Авторизация успешна. login: "+account.getLogin());
-			frame.changeWindow(Frame.WINDOW_MAIN);
-		} catch (AuthException e) {
-			searchServers();
-			frame.changeWindow(Frame.WINDOW_LOGIN);
-		}
-		Log.print("Система аккаунтов и серверный протокол загружены.");
-		
-		DiscordController.load();
-		Log.print("Discord RPC запущен...");
-		
-		Thread load = new Thread(new Runnable() {
-			@Override
-			public void run() {
-				Log.print("Проверка обновлений...");
-				if (checkUpdate()) {
-					Log.print("Найдено новое обновление.");
-					Object[] options = { locale.get("yes"), locale.get("no") };
-					Integer a = frame.showQuestionDialog(locale.get("update_title"), locale.get("update").replaceFirst("%%VERSION%%", Config.UPDATE_NEW_VERSION),options );
-					if (a == 0) {
-						updateLauncher.start();
-					} else {
-						Log.print("Обновление отклонено пользователем.");
-					}
-				} else {
-					Log.print("Обновлений не найдено");
-				}
+			Log.setLogger(logger);
+			
+			Log.getLogger().info("Версия программы "+Config.VERSION+".");
+			Log.getLogger().info("Версия ОС "+System.getProperty("os.name")+", "+System.getProperty("os.arch")+".");
+			Log.getLogger().info("Версия java "+System.getProperty("java.version"));
+			Log.getLogger().info("Инициализация...");
+			
+			Config.load();
+			Log.getLogger().info("Загрузка конфига завершена.");
+			
+			if (Config.LANGUAGE.equalsIgnoreCase("")) {
+				Config.LANGUAGE = getSystemLanguage();
+				Config.save();
 			}
-		});
-		load.start();
-		Log.print("Инициализация завершена.");
+			
+			/*RWAC.load();
+			Log.getLogger().info("RWAC загружен.");*/
+			
+			loadLocale();
+			Log.getLogger().info("Загрузка языка завершена.");
+			
+			//ClientConfigAction.call();
+			//frame = new Frame();
+			createGraphic();
+			Log.getLogger().info("Загрузка окна завершена.");
+			
+			try {
+				account = new Account(new ServerVO(Config.SERVER_LINK, Config.SERVER_NAME), Config.USER_LOGIN, Config.USER_PASSWORD);
+				account.getServer().setProtocol(genProtocolByName(Config.SERVER_PROTOCOL, account.getServer()));
+				account.getServer().getProtocol().login(account);
+				server = account.getServer();
+				server.getProtocol().getResponse();
+				Log.getLogger().info("Авторизация успешна. login: "+account.getLogin());
+				//frame.changeWindow(Frame.WINDOW_MAIN);
+				frame.setLogin(true);
+			} catch (AuthException e) {
+				//searchServers();
+				frame.updateServers(GraphActions.getServerList());
+				//frame.changeWindow(Frame.WINDOW_LOGIN);
+				frame.setLogin(false);
+			} catch (Exception e) {
+				account = null;
+				server = null;
+			}
+			Log.getLogger().info("Система аккаунтов и серверный протокол загружены.");
+			
+			DiscordController.load();
+			Log.getLogger().info("Discord RPC запущен...");
+			
+			Thread load = new Thread(new Runnable() {
+				@Override
+				public void run() {
+					Log.getLogger().info("Проверка обновлений...");
+					if (checkUpdate()) {
+						Log.getLogger().info("Найдено новое обновление.");
+						/*Object[] options = { locale.get("yes"), locale.get("no") };
+						Integer a = frame.showQuestionDialog(locale.get("update_title"), locale.get("update").replaceFirst("%%VERSION%%", Config.UPDATE_NEW_VERSION),options );*/
+						if (frame.questionDialog(locale.get("update").replaceFirst("%%VERSION%%", Config.UPDATE_NEW_VERSION), locale.get("update_title"))) {
+							updateLauncher.start();
+						} else {
+							Log.getLogger().info("Обновление отклонено пользователем.");
+						}
+					} else {
+						Log.getLogger().info("Обновлений не найдено");
+					}
+				}
+			});
+			frame.loadingComplite();
+			load.start();
+			Log.getLogger().info("Инициализация завершена.");
+		} catch (Throwable ex) {
+			logger.log(Level.SEVERE, "Критическая ошибка", ex);
+			new LogWindow().setDescription("Обнаружена критическая ошибка, которая не позволяет программе работать.\n"
+					+ "Пожалуйста сообщите о ней разработчику лаунчера\n"
+					+ "Email: vadik.golubeff@yandex.ru\n"
+					+ "Ниже приведен отчет о работе лаунчера.");
+		}
 	}
 	/**
 	 * Обновить список локализаций
 	 */
-	@SuppressWarnings("unchecked")
+	/*@SuppressWarnings("unchecked")
 	public static void updateLocales() {
 		
 		ComboBoxC<Locale> locs = null;
@@ -130,14 +148,14 @@ public abstract class Main {
 				locs.addItem(new Locale("en", "English"));
 		}
 		ChangeLocaleAction.on();
-	}
+	}*/
 	/**
 	 * Получить протокол по его имени
 	 * @param name - имя протокола
 	 * @param vo - Сервер
 	 * @return
 	 */
-	private static ServerInterface genProtocolByName(String name, ServerVO vo) {
+	public static ServerInterface genProtocolByName(String name, ServerVO vo) {
 		switch(name.trim()) {
 		case "soapbox-Locked":
 			return new SoapboxLocked(vo).getResponse();
@@ -150,7 +168,7 @@ public abstract class Main {
 	/**
 	 * Обновить список серверов
 	 */
-	@SuppressWarnings("unchecked")
+	/*@SuppressWarnings("unchecked")
 	public static void searchServers() {
 		try {
 			
@@ -224,7 +242,7 @@ public abstract class Main {
 		} catch (IOException e) {
 			Log.print(e.getStackTrace());
 		}
-	}
+	}*/
 	/**
 	 * Проверить вышло ли обновление лаунчера
 	 * @return
@@ -240,10 +258,10 @@ public abstract class Main {
 				Config.UPDATE_LINK = info[1];
 				if (!Config.UPDATE_NEW_VERSION.equalsIgnoreCase(Config.VERSION)) return true;
 			} else {
-				Log.print("Ошибка проверки обновления: Не достаточно данных в ответе. Ответ: "+result);
+				Log.getLogger().warning("Ошибка проверки обновления: Не достаточно данных в ответе. Ответ: "+result);
 			}
 		} else {
-			Log.print("Ошибка проверки обновления: При запросе на "+Config.UPDATE_INFO_URL+" пришел пустой ответ.");
+			Log.getLogger().warning("Ошибка проверки обновления: При запросе на "+Config.UPDATE_INFO_URL+" пришел пустой ответ.");
 		}
 		return false;
 	}
@@ -258,8 +276,9 @@ public abstract class Main {
 				File fileLauncher = new File(ru.vadimka.nfswlauncher.Main.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath());
 				if (!fileLauncher.isDirectory()) {
 					
-					frame.changeWindow(Frame.WINDOW_LOADING);
-					Log.print("Обновление: Инициализация...");
+					//frame.changeWindow(Frame.WINDOW_LOADING);
+					frame.loading();
+					Log.getLogger().info("Обновление: Инициализация...");
 					
 					// Загрузка лаунчера
 					URL url = new URL(Config.UPDATE_LINK);
@@ -270,7 +289,7 @@ public abstract class Main {
 					
 					int bs = 0;
 					byte[] buffer = new byte[65536];
-					Log.print("Обновление: Загрузка данных...");
+					Log.getLogger().info("Обновление: Загрузка данных...");
 					while((bs = is.read(buffer, 0, buffer.length)) != -1) {
 						fos.write(buffer, 0, bs);
 					}
@@ -280,7 +299,7 @@ public abstract class Main {
 					// ===================
 					
 					// Замена старого лаунчера
-					Log.print("Обновление: Замена лаунчера...");
+					Log.getLogger().info("Обновление: Замена лаунчера...");
 					FileInputStream fis = new FileInputStream(file);
 					fos = new FileOutputStream(fileLauncher);
 
@@ -294,22 +313,22 @@ public abstract class Main {
 					Files.delete(file.toPath());
 					// =======================
 					
-					Log.print("Обновление: Обновление завершено.");
+					Log.getLogger().info("Обновление: Обновление завершено.");
 					restart();
 				} else {
-					frame.showDialog(locale.get("update_error_compile"), locale.get("update_error_title"));
+					//frame.showDialog(locale.get("update_error_compile"), locale.get("update_error_title"));
+					frame.infoDialog(locale.get("update_error_compile"), locale.get("update_error_title"));
 				}
 			} catch (IOException e) {
-				Log.print("Ошибка обновления: Не удалось обновить лаунчер. "+e.getLocalizedMessage());
-				Log.print(e.getStackTrace());
-				frame.showDialog(locale.get("update_error"), locale.get("update_error_title"));
+				Log.getLogger().log(Level.WARNING,"Ошибка обновления: Не удалось обновить лаунчер. "+e.getLocalizedMessage(),e);
+				frame.errorDialog(locale.get("update_error"), locale.get("update_error_title"));
 			} catch (URISyntaxException e) {
-				Log.print("Ошибка обновления: Не корректная ссылка обновления: "+Config.UPDATE_LINK);
-				frame.showDialog(locale.get("update_error"), locale.get("update_error_title"));
+				Log.getLogger().warning("Ошибка обновления: Не корректная ссылка обновления: "+Config.UPDATE_LINK);
+				frame.errorDialog(locale.get("update_error"), locale.get("update_error_title"));
 			} catch (Exception e) {
-				Log.print("Не предвиденная ошибка обновления: "+e.getLocalizedMessage());
-				Log.print(e.getStackTrace());
-				frame.showDialog(locale.get("update_error"), locale.get("update_error_title"));
+				Log.getLogger().log(Level.WARNING,"Не предвиденная ошибка обновления: "+e.getLocalizedMessage(), e);
+				//frame.showDialog(locale.get("update_error"), locale.get("update_error_title"));
+				frame.errorDialog(locale.get("update_error"), locale.get("update_error_title"));
 			}
 		}
 	});
@@ -327,7 +346,7 @@ public abstract class Main {
 			Process process = pb.start();
 			if (process == null) throw new Exception("Ошибка запуска лаунера!");
 		} catch (Exception e) {
-			Log.print("Ошибка: Не удалось перезапустить лаунчер. "+e.getLocalizedMessage());
+			Log.getLogger().warning("Ошибка: Не удалось перезапустить лаунчер. "+e.getLocalizedMessage());
 		}
 		shutdown(0);
 	}
@@ -344,7 +363,7 @@ public abstract class Main {
 		else
 			wrkDir = new File(userHome,"Need for Speed World"+File.separator);
 		if ((!wrkDir.exists()) && (!wrkDir.mkdirs())) {
-			Log.print("Ошибка: Не удалось определить рабочую деректорию. ");
+			Log.getLogger().warning("Ошибка: Не удалось определить рабочую деректорию. ");
 			throw new RuntimeException("Рабочая директория не определена.");
 		}
 		return wrkDir;
@@ -380,5 +399,33 @@ public abstract class Main {
 			return "Mac";
 		}
 		else return osName;
+	}
+	/**
+	 * Загрузить локаль
+	 */
+	public static void loadLocale() {
+		locale = Locale.getLocaleById(Config.LANGUAGE);
+		locale.load();
+	}
+	/**
+	 * Уничтожить всю графику
+	 */
+	public static void destroyGraphic() {
+		frame.destroy();
+		frame = null;
+		System.gc();
+	}
+	/**
+	 * Создать графику
+	 */
+	public static void createGraphic() {
+		if (frame != null) return;
+		frame = new GUI();
+		frame.updateLocales(Locale.values());
+		frame.setVisible(true);
+		if (Main.account != null) {
+			frame.setLogin(Main.account.isAuth());
+			frame.loadingComplite();
+		}
 	}
 }
