@@ -1,9 +1,6 @@
 package ru.vadimka.nfswlauncher;
 
 import java.io.File;
-import java.util.Base64;
-import java.util.Base64.Decoder;
-import java.util.Base64.Encoder;
 
 import ru.vadimka.nfswlauncher.utils.ConfigUtils;
 
@@ -38,8 +35,7 @@ public class Config {
 		USER_LOGIN = "";
 		USER_PASSWORD = "";
 		if (str != null) {
-			Decoder dec = Base64.getDecoder();
-			String[] decoded = new String(dec.decode(str.getBytes())).split("\n");
+			String[] decoded = "" /* Декодируем наши данные */;
 			if (decoded != null && decoded.length == 2) {
 				USER_LOGIN = decoded[0];
 				USER_PASSWORD = decoded[1];
@@ -89,8 +85,7 @@ public class Config {
 		ConfigUtils config = new ConfigUtils(Main.getWorkDir()+File.separator+"launcher.cfg");
 		
 		if (USER_LOGIN != "" && USER_PASSWORD != "") {
-			Encoder enc = Base64.getEncoder();
-			String account = new String(enc.encode((USER_LOGIN+"\n"+USER_PASSWORD).getBytes()));
+			String account = "" /* Кодируем наши данные */;
 			config.set("account", account);
 		}
 		// Трем старые данные
