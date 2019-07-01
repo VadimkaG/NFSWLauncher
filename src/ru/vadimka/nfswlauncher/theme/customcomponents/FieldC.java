@@ -5,8 +5,6 @@ import java.awt.event.FocusListener;
 
 import javax.swing.JTextField;
 
-import ru.vadimka.nfswlauncher.actions.Getter;
-import ru.vadimka.nfswlauncher.actions.Linkable;
 import ru.vadimka.nfswlauncher.theme.manager.StyleItem;
 
 public class FieldC extends JTextField implements FocusListener {
@@ -18,6 +16,10 @@ public class FieldC extends JTextField implements FocusListener {
 	private String value = "";
 	private String HINT = "";
 	private boolean showingHint = false;
+	
+	public FieldC() {
+		super();
+	}
 	
 	public FieldC(int i,String str) {
 		super(i);
@@ -37,7 +39,7 @@ public class FieldC extends JTextField implements FocusListener {
 		if (style.getColorText() != null)
 			setForeground(style.getColorText());
 	}
-	public FieldC genGetter(Linkable obj) {
+	/*public FieldC genGetter(Linkable obj) {
 		FieldC c = this;
 		obj.link(alias, new Getter<String>() {
 			@Override
@@ -46,7 +48,7 @@ public class FieldC extends JTextField implements FocusListener {
 			}
 		});
 		return this;
-	}
+	}*/
 	@Override
 	public void focusGained(FocusEvent arg0) {
 		if(this.getText().isEmpty()) {

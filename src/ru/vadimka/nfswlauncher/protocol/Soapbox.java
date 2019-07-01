@@ -5,6 +5,7 @@ import java.io.StringReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.HashMap;
+import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -36,23 +37,34 @@ public class Soapbox implements ServerInterface {
 	
 	protected boolean SERVER_ONLINE = false;
 	
+	private long PING = 0;
+	
 	public Soapbox(ServerVO vo) {
 		VO = vo;
+		ping();
+	}
+	
+	public void ping() {
 		if (!VO.getIP().equalsIgnoreCase("")) {
 			Thread ping = new Thread(() -> {
+				
 				HttpURLConnection conn = null;
 				try {
-					URL url = new URL("http://"+VO.getIP()+"/soapbox-race-core/Engine.svc/GetServerInformation");
+					URL url = new URL("http://"+VO.getIP()+"/");
+					long StartTime = System.currentTimeMillis();
 					conn = (HttpURLConnection) url.openConnection();
 					conn.connect();
 					if (conn.getResponseCode() == 200)
 						SERVER_ONLINE = true;
 					conn.disconnect();
+					long EndTime = System.currentTimeMillis();
+					PING = EndTime-StartTime;
 				} catch (IOException e) {
-					Log.print("Ошибка при попытке запинговать сервер "+VO.getName());
+					Log.getLogger().warning("Ошибка при попытке запинговать сервер "+VO.getName());
 					if (conn != null)
 						conn.disconnect();
 				}
+				
 				synchronized (this) {
 					notify();
 				}
@@ -63,7 +75,9 @@ public class Soapbox implements ServerInterface {
 					ping.wait(1300);
 					if (ping.isAlive()) {
 						ping.interrupt();
-						Log.print("Сервер "+vo.getName()+" не отвечает.");
+						//Log.getLogger().warning("Сервер "+VO.getName()+" не отвечает.");
+						PING = 1;
+						SERVER_ONLINE = false;
 					}
 				} catch (InterruptedException e) {}
 			}
@@ -81,6 +95,8 @@ public class Soapbox implements ServerInterface {
 	@Override
 	public String get(String alias) {
 		if (STORAGE.containsKey(alias)) return STORAGE.get(alias);
+		else if (alias.equalsIgnoreCase("SERVER_NAME")) return VO.getName();
+		else if (alias.equalsIgnoreCase("ping")) return String.valueOf(PING);
 		return alias;
 	}
 
@@ -112,8 +128,7 @@ public class Soapbox implements ServerInterface {
 				Document doc = dcBuilder.parse(new InputSource(new StringReader(xml)));
 				acc.login(doc.getElementsByTagName("UserId").item(0).getTextContent(), doc.getElementsByTagName("LoginToken").item(0).getTextContent());
 			} catch (Exception e) {
-				Log.print("Ошибка логина: Не удалось разобрать данные в ответе. Ответ: "+xml);
-				Log.print(e.getStackTrace());
+				Log.getLogger().warning("Ошибка логина: Не удалось разобрать данные в ответе. Ответ: "+xml);
 				throw new AuthException("Не удалось разобрать ответ от сервера..."+e.getMessage());
 			}
 		} else {
@@ -131,13 +146,13 @@ public class Soapbox implements ServerInterface {
 					}
 				}
 			} catch (ParserConfigurationException e) {
-				Log.print("Ошибка парсинга ответа от сервера (ошибки)");
+				Log.getLogger().warning("Ошибка парсинга ответа от сервера (ошибки)");
 				throw new AuthException("Ошибка при разборе полученных данных от сервера.");
 			} catch (SAXException e) {
-				Log.print("Ошибка синтаксиса ответа от сервера (ошибки)");
+				Log.getLogger().warning("Ошибка синтаксиса ответа от сервера (ошибки)");
 				throw new AuthException("Ошибка при разборе полученных данных от сервера.");
 			} catch (IOException e) {
-				Log.print("Ошибка чтения ответа от сервера (ошибки)");
+				Log.getLogger().warning("Ошибка чтения ответа от сервера (ошибки)");
 				throw new AuthException("Ошибка при разборе полученных данных от сервера.");
 			}
 		}
@@ -147,7 +162,7 @@ public class Soapbox implements ServerInterface {
 	public void register(String login, String password) throws AuthException {
 		if (!SERVER_ONLINE) throw new AuthException("Сервер не отвечает");
 		if (login.length() < 2 || !EmailValidate(login)) {
-			Log.print("Ошибка регистрации: Email введен не верно!");
+			Log.getLogger().warning("Ошибка регистрации: Email введен не верно!");
 			throw new AuthException(Main.locale.get("msg_reg_error_email"));
 		}
 		
@@ -177,13 +192,13 @@ public class Soapbox implements ServerInterface {
 					}
 				}
 			} catch (ParserConfigurationException e) {
-				Log.print("Ошибка парсинга ответа от сервера (ошибки)");
+				Log.getLogger().warning("Ошибка парсинга ответа от сервера (ошибки)");
 				throw new AuthException("Ошибка при разборе данных с сервера");
 			} catch (SAXException e) {
-				Log.print("Ошибка синтаксиса ответа от сервера (ошибки)");
+				Log.getLogger().warning("Ошибка синтаксиса ответа от сервера (ошибки)");
 				throw new AuthException("Ошибка при разборе данных с сервера");
 			} catch (IOException e) {
-				Log.print("Ошибка чтения ответа от сервера (ошибки)");
+				Log.getLogger().warning("Ошибка чтения ответа от сервера (ошибки)");
 				throw new AuthException("Ошибка при разборе данных с сервера");
 			}
 		}
@@ -196,7 +211,7 @@ public class Soapbox implements ServerInterface {
 
 	@Override
 	public String getServerEngine() {
-		return "http://"+VO.getIP()+"/soapbox-race-core/Engine.svc";
+		return "http://"+VO.getRedirrectedIP()+"/soapbox-race-core/Engine.svc";
 	}
 	
 	public ServerInterface getResponse() {
@@ -226,9 +241,7 @@ public class Soapbox implements ServerInterface {
 				
 				if (jo.containsKey("serverName")) {
 					String name = (String) jo.get("serverName");
-					if (name.equalsIgnoreCase(""))
-						STORAGE.put("SERVER_NAME", VO.getName());
-					else
+					if (!name.equalsIgnoreCase(""))
 						STORAGE.put("SERVER_NAME", (String) jo.get("serverName"));
 				}
 				
@@ -249,11 +262,9 @@ public class Soapbox implements ServerInterface {
 				else STORAGE.put("BANNER", "");
 				
 			} catch (ParseException e) {
-				System.out.println("Ошибка: Не удалось разобрать данные пришедшие с "+VO.getIP()+". "+e.getMessage());
-				System.out.println("Пришедшие данные: "+result);
+				Log.getLogger().warning("Ошибка: Не удалось разобрать данные пришедшие с "+VO.getIP()+". "+e.getMessage()+"\nПришедшие данные: "+result);
 			} catch (Exception e) {
-				Log.print("Ошибка при разборе данных "+VO.getIP()+". "+e.getLocalizedMessage());
-				Log.print(e.getStackTrace());
+				Log.getLogger().log(Level.WARNING,"Ошибка при разборе данных "+VO.getIP()+". "+e.getLocalizedMessage(),e);
 			}
 		}
 		return this;

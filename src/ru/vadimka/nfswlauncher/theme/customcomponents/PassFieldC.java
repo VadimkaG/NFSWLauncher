@@ -2,10 +2,6 @@ package ru.vadimka.nfswlauncher.theme.customcomponents;
 
 import javax.swing.JPasswordField;
 
-import org.apache.commons.codec.digest.DigestUtils;
-
-import ru.vadimka.nfswlauncher.actions.Getter;
-import ru.vadimka.nfswlauncher.actions.Linkable;
 import ru.vadimka.nfswlauncher.theme.manager.StyleItem;
 
 public class PassFieldC extends JPasswordField implements Stylisable {
@@ -13,6 +9,10 @@ public class PassFieldC extends JPasswordField implements Stylisable {
 	private static final long serialVersionUID = -5881740635140730506L;
 	
 	private String alias = "";
+	
+	public PassFieldC() {
+		super();
+	}
 
 	public PassFieldC(int i, String str) {
 		super(i);
@@ -24,7 +24,7 @@ public class PassFieldC extends JPasswordField implements Stylisable {
 		if (style.getColorText() != null)
 			setForeground(style.getColorText());
 	}
-	public PassFieldC genGetter(Linkable obj) {
+	/*public PassFieldC genGetter(Linkable obj) {
 		PassFieldC c = this;
 		obj.link(alias, new Getter<String>() {
 			@SuppressWarnings("deprecation")
@@ -34,5 +34,5 @@ public class PassFieldC extends JPasswordField implements Stylisable {
 			}
 		});
 		return this;
-	}
+	}*/
 }

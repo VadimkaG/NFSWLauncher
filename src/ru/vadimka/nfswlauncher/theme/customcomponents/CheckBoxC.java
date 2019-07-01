@@ -8,6 +8,10 @@ public class CheckBoxC extends JCheckBox {
 
 	private static final long serialVersionUID = -1952640317275786431L;
 	
+	public CheckBoxC(boolean b) {
+		super();
+		super.setSelected(b);
+	}
 	public CheckBoxC(ActionListener act) {
 		super();
 		addActionListener(act);

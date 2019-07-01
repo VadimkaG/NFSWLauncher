@@ -1,7 +1,9 @@
 package ru.vadimka.nfswlauncher.theme.customcomponents;
 
 import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.Image;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -24,9 +26,9 @@ public class ImageC extends JComponent {
 		super();
 		setImage(imagePath);
 	}
-	public ImageC(Image imagePath) {
+	public ImageC(Image image) {
 		super();
-		img = (BufferedImage) imagePath;
+		img = (BufferedImage) image;
 		repaint();
 	}
 	public ImageC() {
@@ -41,11 +43,15 @@ public class ImageC extends JComponent {
 					img = ImageIO.read(new URL(url));
 					repaint();
 				} catch (IOException e) {
-					Log.print("Ошибка загрузки картинки: "+url);
+					Log.getLogger().warning("Ошибка загрузки картинки: "+url);
 				}
 			}
 		});
 		th.start();
+	}
+	public void setImage(Image image) {
+		img = (BufferedImage) image;
+		repaint();
 	}
 	public void setImage(String imagePath) {
 		Thread th = new Thread(new Runnable() {
@@ -53,11 +59,12 @@ public class ImageC extends JComponent {
 			public void run() {
 				try {
 					img = ImageIO.read(new File(imagePath));
+					repaint();
 					/*width = img.getWidth();
 					height = img.getHeight();*/
 					//this.setSize(width,height);
 				} catch (IOException e) {
-					Log.print("Ошибка загрузки картинки: "+imagePath);
+					Log.getLogger().warning("Ошибка загрузки картинки: "+imagePath);
 				}
 			}
 		});
@@ -65,6 +72,7 @@ public class ImageC extends JComponent {
 	}
 	public void paintComponent(Graphics g) {
 		super.paintComponent(g);
+		((Graphics2D) g).setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 		if (img != null)
 			g.drawImage(img, 0, 0, getWidth(), getHeight(), null);
 	}

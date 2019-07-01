@@ -140,4 +140,12 @@ public class ConfigUtils {
 		if (getString(index).equalsIgnoreCase("")) return 0.0;
 		else return Double.parseDouble(getString(index));
 	}
+	/**
+	 * Удалить значение из базы
+	 * @param index - Индекс значения
+	 */
+	public void remove(String index) {
+		if (storage.containsKey(index))
+			storage.remove(index);
+	}
 }

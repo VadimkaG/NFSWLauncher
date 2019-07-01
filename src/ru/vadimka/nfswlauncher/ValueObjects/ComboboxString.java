@@ -7,11 +7,20 @@ public class ComboboxString<T> {
 		NAME = name;
 		VALUE = value;
 	}
+	/**
+	 * Получить название
+	 */
+	public String getName() {
+		return NAME;
+	}
+	/**
+	 * Получить значение
+	 */
 	public T getValue() {
 		return VALUE;
 	}
 	@Override
 	public String toString() {
-		return NAME;
+		return getName();
 	}
 }

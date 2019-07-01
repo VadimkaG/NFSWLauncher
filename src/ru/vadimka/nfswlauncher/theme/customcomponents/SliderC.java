@@ -2,8 +2,6 @@ package ru.vadimka.nfswlauncher.theme.customcomponents;
 
 import javax.swing.JSlider;
 
-import ru.vadimka.nfswlauncher.actions.Getter;
-import ru.vadimka.nfswlauncher.actions.Linkable;
 import ru.vadimka.nfswlauncher.theme.manager.StyleItem;
 
 public class SliderC extends JSlider implements Stylisable {
@@ -23,7 +21,7 @@ public class SliderC extends JSlider implements Stylisable {
 		// TODO Auto-generated method stub
 		
 	}
-	public SliderC genGetter(Linkable obj) {
+	/*public SliderC genGetter(Linkable obj) {
 		SliderC c = this;
 		obj.link(alias, new Getter<String>() {
 			@Override
@@ -32,6 +30,6 @@ public class SliderC extends JSlider implements Stylisable {
 			}
 		});
 		return this;
-	}
+	}*/
 
 }

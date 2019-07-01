@@ -1,7 +1,9 @@
 package ru.vadimka.nfswlauncher.theme.customcomponents;
 
 import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.Image;
+import java.awt.RenderingHints;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
@@ -28,9 +30,14 @@ public class DynBgC extends JComponent implements ActionListener {
 	private int width_add = 1;
 	private int height_add = 1;
 	
+	public DynBgC() {}
+	
 	public DynBgC(Image imagePath) {
-		super();
 		img = (BufferedImage) imagePath;
+		configImage();
+		start();
+	}
+	private void configImage() {
 		width = img.getWidth();
 		height = img.getHeight();
 		if (width_cur == -1)
@@ -39,6 +46,8 @@ public class DynBgC extends JComponent implements ActionListener {
 			height_cur = height/2;
 		rand();
 		repaint();
+	}
+	public void start() {
 		Timer t = new Timer(80, this);
 		t.start();
 	}
@@ -76,27 +85,34 @@ public class DynBgC extends JComponent implements ActionListener {
 		//else if (rand < 0.1 && width_add != 0) height_add = 0;
 		else height_add = -1;
 	}
+	public void setImage(BufferedImage image) {
+		img = image;
+		configImage();
+	}
 	public void setImage(String imagePath) {
 		Thread th = new Thread(new Runnable() {
 			@Override
 			public void run() {
 				try {
 					img = ImageIO.read(new File(imagePath));
+					configImage();
 					/*width = img.getWidth();
 					height = img.getHeight();*/
 					//this.setSize(width,height);
 				} catch (IOException e) {
-					Log.print("Ошибка загрузки картинки: "+imagePath);
+					Log.getLogger().warning("Ошибка загрузки картинки: "+imagePath);
 				}
 			}
 		});
 		th.start();
 	}
 	public void paintComponent(Graphics g) {
-		super.paintComponent(g);
+		Graphics2D gt = (Graphics2D) g;
+		gt.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+		super.paintComponent(gt);
 		if (img != null) {
 			Image i = img.getSubimage(width_cur, height_cur, getWidth(), getHeight());
-			g.drawImage(i, 0, 0, getWidth(), getHeight(), null);
+			gt.drawImage(i, 0, 0, getWidth(), getHeight(), null);
 		}
 	}
 	public DynBgC setB(int x, int y, int width, int height) {

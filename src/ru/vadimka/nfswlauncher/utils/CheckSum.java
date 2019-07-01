@@ -15,7 +15,7 @@ public abstract class CheckSum {
 	 */
 	public static byte[] get(InputStream fis) {
 		if (fis == null) {
-			Log.print("[Checksum] Не обнаружен входящий поток");
+			Log.getLogger().warning("[Checksum] Не обнаружен входящий поток");
 			return new byte[0];
 		}
 		try {
@@ -30,29 +30,20 @@ public abstract class CheckSum {
 			fis.close();
 			return complete.digest();
 		} catch (IOException e) {
-			Log.print("Не удалось прочитать файл.");
+			Log.getLogger().warning("Не удалось прочитать файл.");
 		} catch (NoSuchAlgorithmException e) {
-			Log.print(e.getMessage());
-			Log.print(e.getStackTrace());
+			Log.getLogger().warning("[CheckSum]"+e.getMessage());
+			//Log.getLogger().warning(e.getStackTrace());
 		}
 		return new byte[0];
 	}
 	/**
 	 * Отдать контрольную сумму
 	 * @param path - InputStream файла
-	 * @return строку байт файла
-	 * 
+	 * @param raw - Если true, то будет выводиться полностью без лишних символов
 	 */
-	public static String print(InputStream path) {
-		byte[] b = {};
-		b = get(path);
-		int len = b.length;
-		if (len < 1) return "";
-		String data = new String();
-		for (int i = 0; i < len; i++) {
-			if (i != 0) data += ", ";
-			data += "(byte) 0x"+Integer.toHexString((b[i] >> 4) & 0xf)+""+Integer.toHexString(b[i] & 0xf);
-		}
-		return data;
+	public static String print(InputStream path, boolean raw) {
+		byte[] bytes = get(path);
+		return ByteUtils.bytesToHexString(bytes, raw);
 	}
 }

@@ -1,10 +1,13 @@
 package ru.vadimka.nfswlauncher.theme.customcomponents;
 
+import java.awt.Color;
 import java.awt.Graphics;
-import java.awt.Image;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.awt.image.BufferedImage;
 
 import javax.swing.JButton;
 
@@ -17,13 +20,24 @@ public class ButtonC extends JButton implements MouseListener, Stylisable {
 	private Boolean pressed = false;
 	private Boolean entered = false;
 	
-	private Image Idefault = null;
-	private Image Ifocus = null;
-	private Image Ipressed = null;
+	private BufferedImage Idefault = null;
+	private BufferedImage Ifocus = null;
+	private BufferedImage Ipressed = null;
+	private BufferedImage Idisabled = null;
+	
+	private Color TEXT_COLOR_DEFAULT;
+	private Color TEXT_COLOR_PRESSED;
+	private Color TEXT_COLOR_FOCUS;
+	private Color TEXT_COLOR_DISABLED;
 	
 	private boolean HIDE_TEXT = false;
 	
 	private static final long serialVersionUID = 533602725720866473L;
+	
+	public ButtonC() {
+		super("");
+		addMouseListener(this);
+	}
 	
 	public ButtonC(String text) {
 		super(text);
@@ -42,10 +56,15 @@ public class ButtonC extends JButton implements MouseListener, Stylisable {
 			setBackground(style.getBackground());
 		if (style.getColorText() != null)
 			setForeground(style.getColorText());
+		TEXT_COLOR_DEFAULT = style.getColorText();
+		TEXT_COLOR_PRESSED = style.getColorTextPressed();
+		TEXT_COLOR_FOCUS = style.getColorTextFocus();
+		TEXT_COLOR_DISABLED = style.getColorTextDisabled();
 		HIDE_TEXT = style.textHidden();
 		Idefault = style.getBackgroundDefault();
 		Ifocus = style.getBackgroundFocus();
 		Ipressed = style.getBackgroundPressed();
+		Idisabled = style.getBackgroundDisabled();
 		if (Idefault != null && Ifocus != null && Ipressed != null) {
 			setOpaque(false);
 			setBorderPainted(false);
@@ -58,22 +77,34 @@ public class ButtonC extends JButton implements MouseListener, Stylisable {
 			super.paintComponent(g);
 			return;
 		}
+		Graphics2D gt = (Graphics2D) g;
+		gt.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 		int xText = getWidth()/2-(getText().length()*(getFont().getSize()/2))/2;
 		int yText = getHeight()/2+getFont().getSize()/2;
-		if (!entered && !pressed && Idefault != null) {
-			g.drawImage(Idefault, 0, 0, getWidth(), getHeight(), null);
+		if (!isEnabled() && Idisabled != null) {
+			if (TEXT_COLOR_DISABLED != null) setForeground(TEXT_COLOR_DISABLED);
+			gt.drawImage(Idisabled, 0, 0, getWidth(), getHeight(), null);
 			if (!HIDE_TEXT)
-			g.drawString(getText(), xText, yText);
+				gt.drawString(getText(), xText, yText);
+			return;
+		}
+		if (!entered && !pressed && Idefault != null) {
+			if (TEXT_COLOR_DEFAULT != null) setForeground(TEXT_COLOR_DEFAULT);
+			gt.drawImage(Idefault, 0, 0, getWidth(), getHeight(), null);
+			if (!HIDE_TEXT)
+			gt.drawString(getText(), xText, yText);
 		}
 		else if (pressed && Ipressed != null) {
-			g.drawImage(Ipressed, 0, 0, getWidth(), getHeight(), null);
+			if (TEXT_COLOR_PRESSED != null) setForeground(TEXT_COLOR_PRESSED);
+			gt.drawImage(Ipressed, 0, 0, getWidth(), getHeight(), null);
 			if (!HIDE_TEXT)
-			g.drawString(getText(), xText, yText);
+			gt.drawString(getText(), xText, yText);
 		}
 		else if (entered && !pressed && Ifocus != null) {
-			g.drawImage(Ifocus, 0, 0, getWidth(), getHeight(), null);
+			if (TEXT_COLOR_FOCUS != null) setForeground(TEXT_COLOR_FOCUS);
+			gt.drawImage(Ifocus, 0, 0, getWidth(), getHeight(), null);
 			if (!HIDE_TEXT)
-			g.drawString(getText(), xText, yText);
+			gt.drawString(getText(), xText, yText);
 		} else {
 			super.paintComponent(g);
 		}

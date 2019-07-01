@@ -4,8 +4,6 @@ import java.awt.event.ActionListener;
 
 import javax.swing.JComboBox;
 
-import ru.vadimka.nfswlauncher.actions.Getter;
-import ru.vadimka.nfswlauncher.actions.Linkable;
 import ru.vadimka.nfswlauncher.theme.manager.StyleItem;
 
 public class ComboBoxC<T> extends JComboBox<T> {
@@ -14,6 +12,10 @@ public class ComboBoxC<T> extends JComboBox<T> {
 	
 	private String alias = "";
 	
+	public ComboBoxC(String str) {
+		super();
+		alias = str;
+	}
 	public ComboBoxC(ActionListener act,String str) {
 		super();
 		alias = str;
@@ -23,7 +25,7 @@ public class ComboBoxC<T> extends JComboBox<T> {
 	public void setStyle(StyleItem style) {
 		// Не реализовано
 	}
-	public ComboBoxC<T> genGetter(Linkable obj) {
+	/*public ComboBoxC<T> genGetter(Linkable obj) {
 		ComboBoxC<T> c = this;
 		obj.link(alias, new Getter<String>() {
 			@Override
@@ -32,6 +34,6 @@ public class ComboBoxC<T> extends JComboBox<T> {
 			}
 		});
 		return this;
-	}
+	}*/
 
 }

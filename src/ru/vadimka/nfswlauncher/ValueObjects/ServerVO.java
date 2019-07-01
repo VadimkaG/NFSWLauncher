@@ -4,12 +4,14 @@ import ru.vadimka.nfswlauncher.protocol.ServerInterface;
 
 public class ServerVO {
 	private String IP;
+	private String redirIP;
 	private String NAME;
 	private ServerInterface PROTOCOL;
 	
 	public ServerVO(String ip, String name) {
 		IP = ip;
 		NAME = name;
+		redirIP = null;
 	}
 	/**
 	 * Получить IP сервера
@@ -17,6 +19,21 @@ public class ServerVO {
 	 */
 	public String getIP() {
 		return IP;
+	}
+	/**
+	 * Получить IP сервера
+	 * @return String
+	 */
+	public String getRedirrectedIP() {
+		if (redirIP == null) return IP;
+		else return redirIP;
+	}
+	/**
+	 * Установить редиррект
+	 * @param ip - куда редирректить
+	 */
+	public void setRedirrect(String ip) {
+		redirIP = ip;
 	}
 	/**
 	 * Получить название сервера
