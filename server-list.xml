@@ -24,6 +24,7 @@
     protocol="soapbox"
     >NightRiderz</server>
   <server
+    https="true"
     ip="sbrw-ssl.nextdata.eu"
     protocol="soapbox"
     >Freeroam SparkServer</server>
