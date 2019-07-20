@@ -23,9 +23,4 @@
     ip="149.202.87.33:8680"
     protocol="soapbox"
     >NightRiderz</server>
-  <server
-    https="true"
-    ip="sbrw-ssl.nextdata.eu"
-    protocol="soapbox"
-    >Freeroam SparkServer</server>
 </servers>
