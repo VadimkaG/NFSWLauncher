@@ -4,14 +4,6 @@
     protocol="soapbox"
     >World Evolved</server>
   <server
-    ip="200.98.139.241:8680"
-    protocol="soapbox"
-    >HUE RACERS</server>
-  <server
-    ip="35.237.96.64"
-    protocol="soapbox"
-    >Apex</server>
-  <server
     ip="180.97.28.12:8680"
     protocol="soapbox"
     >Zesty's Server</server>
