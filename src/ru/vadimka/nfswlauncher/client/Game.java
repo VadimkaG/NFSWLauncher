@@ -1,5 +1,6 @@
 package ru.vadimka.nfswlauncher.client;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -19,22 +20,21 @@ public class Game {
 	
 	private Process game;
 	
-	private static final byte[] CHECKSUM_LaunchFile = {
-			(byte) 0x4c, (byte) 0x32, (byte) 0x93, (byte) 0x6d,
-			(byte) 0xeb, (byte) 0xff, (byte) 0xcb, (byte) 0xdc,
-			(byte) 0x20, (byte) 0x8d, (byte) 0x39, (byte) 0x50,
-			(byte) 0x2b, (byte) 0x79, (byte) 0xa5, (byte) 0x6f
-	};
+	private static final byte[] CHECKSUM_LaunchFile = {};
 	
-	public Game(String token, String userId, String serverEnginePath, String gamePath) {
-		if (!isLaunchFile(gamePath)) {
-			Main.frame.errorDialog(Main.locale.get("launch_error_file"), Main.locale.get("launch_error_title"));
-			return;
-		}
+	private static Game INSTANCE = null;
+	
+	public static Game call(String token, String userId, String serverEnginePath, String gamePath) {
+		if (INSTANCE == null) INSTANCE = new Game(token, userId, serverEnginePath, gamePath);
+		return INSTANCE;
+	}
+	
+	private Game(String token, String userId, String serverEnginePath, String gamePath) {
 		try {
+			Main.frame.loading();
 			ProcessBuilder builder;
 			if (Config.WINE_PATH.equalsIgnoreCase("")) {
-				builder = new ProcessBuilder(gamePath, Main.getSystemLanguage(), serverEnginePath, token, userId);
+				builder = new ProcessBuilder(gamePath, Main.getSystemLanguage().toUpperCase(), serverEnginePath, token, userId);
 			}
 			else {
 				builder = new ProcessBuilder(Config.WINE_PATH, gamePath, Main.getSystemLanguage(), serverEnginePath, token, userId);
@@ -43,18 +43,18 @@ public class Game {
 			}
 			Log.getLogger().info("Запуск игры и скрытие GUI лаунчера...");
 			game = builder.start();
-			DiscordController.updateState("Играет на "+Main.server.getProtocol().get("SERVER_NAME"), "Игра запущена");
+			DiscordController.updateState("Играет на "+Main.account.getServer().getProtocol().get("SERVER_NAME"), "Игра запущена");
 			inputReader.start();
 			//Main.frame.setVisible(false);
-			Main.frame.setVisible(false);
 			if (Config.BACKGROUND_WORCK_DENY) Main.shutdown(0);
+			else Main.destroyGraphic();
 			waitForGameStoped.start();
 		} catch (Exception e) {
 			Main.createGraphic();
 			Log.getLogger().warning("Не возможно прочитать файл запуска. Закрытие лаунчера.");
 			Main.frame.errorDialog("Во время запуска игры произошла ошибка\nПопробуйте перекачать игру", "Не удалось запустить игру");
 			//Main.frame.setVisible(true);
-			Main.frame.setVisible(true);
+			Main.frame.loadingComplite();
 		}
 	}
 	/**
@@ -70,12 +70,11 @@ public class Game {
 					Log.getLogger().warning("Игра завершилась не правильно. Код завершения: "+exitCode);
 					//Main.frame.changeWindow(Frame.WINDOW_LOADING);
 					Main.frame.loading();
-					//Main.frame.setVisible(true);
 					Main.frame.setVisible(true);
 					DiscordController.updateState("","Игра не запущена");
 					Main.frame.errorDialog("Упс... Похоже игра завершилась с ошибкой...", "Игра завершена с ошибкой");
 					try {
-						Main.server.getProtocol().login(Main.account);
+						Main.account.getServer().getProtocol().login(Main.account);
 						//Main.frame.changeWindow(Frame.WINDOW_MAIN);
 						Main.frame.setLogin(true);
 					} catch (AuthException e) {
@@ -124,4 +123,7 @@ public class Game {
 			} catch (IOException e) {}
 		}
 	});
+	public static File getConfigFile() {
+		return new File(Main.getConfigDir()+File.separator+"Settings"+File.separator+"UserSettings.xml");
+	}
 }
