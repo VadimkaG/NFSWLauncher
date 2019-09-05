@@ -62,7 +62,7 @@ public enum Locale {
 	 * Загрузить строки из файла
 	 */
 	public void load() {
-		InputStream is = Class.class.getResourceAsStream("/ru/vadimka/nfswlauncher/resources/locales/"+ID+".cfg");
+		InputStream is = Main.class.getResourceAsStream("resources/locales/"+ID+".cfg");
 		if (is == null) {
 			if (!ID.equalsIgnoreCase("en")) {
 				ID = "en";
@@ -82,8 +82,17 @@ public enum Locale {
 			while((str = br.readLine()) != null) {
 				if (str.length() < 2) continue;
 				strs = str.split(": ",2);
-				if (!str.substring(0, 1).equalsIgnoreCase("#") && !str.substring(0, 2).equalsIgnoreCase("//"))
-					STORAGE.put(strs[0], strs[1]);
+				if (!str.substring(0, 1).equalsIgnoreCase("#") && !str.substring(0, 2).equalsIgnoreCase("//") && !str.contentEquals("")) {
+					String val = strs[1];
+					if (strs[1].length() > 0) {
+						while(val.substring(val.length()-1).equalsIgnoreCase("\\")) {
+							str = br.readLine();
+							if (str == null) break;
+							val = val.substring(0,val.length()-1)+str;
+						}
+					}
+					STORAGE.put(strs[0], val);
+				}
 			}
 			br.close();
 			if (NAME == "" && STORAGE.containsKey("name")) NAME = STORAGE.get("name");

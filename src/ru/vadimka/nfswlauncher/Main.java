@@ -1,5 +1,6 @@
 package ru.vadimka.nfswlauncher;
 
+import java.awt.Font;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -11,9 +12,13 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
+
+import javax.swing.UIManager;
+import javax.swing.plaf.FontUIResource;
 
 import ru.vadimka.nfswlauncher.ValueObjects.Account;
 import ru.vadimka.nfswlauncher.ValueObjects.ServerVO;
@@ -23,6 +28,7 @@ import ru.vadimka.nfswlauncher.protocol.ServerInterface;
 import ru.vadimka.nfswlauncher.protocol.Soapbox;
 import ru.vadimka.nfswlauncher.protocol.SoapboxLocked;
 import ru.vadimka.nfswlauncher.theme.GUI;
+import ru.vadimka.nfswlauncher.theme.GUIResourseLoader;
 import ru.vadimka.nfswlauncher.theme.GraphActions;
 import ru.vadimka.nfswlauncher.theme.GraphModule;
 import ru.vadimka.nfswlauncher.theme.LogWindow;
@@ -32,13 +38,16 @@ import ru.vadimka.nfswlauncher.utils.HTTPRequest;
 public abstract class Main {
 	private static Logger logger;
 	public static Locale locale;
-	public static ServerVO server;
 	public static Account account;
 	public static GraphModule frame = null;
 	public static Game game;
-	public static void main(String[] args) {init();}
-	public static void init() {
-		Main.getWorkDir();
+	public static void main(String[] args) {
+		if (args.length == 1 && args[0].contentEquals("noautoauth"))
+			init(false);
+		else
+			init(true);
+	}
+	public static void init(boolean autoauth) {
 		LogManager.getLogManager().reset();
 		logger = LogManager.getLogManager().getLogger("");
 		if (Config.MODE_LOG_CONSOLE)
@@ -52,8 +61,10 @@ public abstract class Main {
 			
 			Log.getLogger().info("Версия программы "+Config.VERSION+".");
 			Log.getLogger().info("Версия ОС "+System.getProperty("os.name")+", "+System.getProperty("os.arch")+".");
-			Log.getLogger().info("Версия java "+System.getProperty("java.version"));
+			Log.getLogger().info("Версия java "+System.getProperty("java.version")+" "+System.getProperty("sun.arch.data.model"));
 			Log.getLogger().info("Инициализация...");
+			
+			System.setProperty("Djava.awt.headless", "true");
 			
 			Config.load();
 			Log.getLogger().info("Загрузка конфига завершена.");
@@ -63,26 +74,41 @@ public abstract class Main {
 				Config.save();
 			}
 			
-			/*RWAC.load();
-			Log.getLogger().info("RWAC загружен.");*/
-			
 			loadLocale();
 			Log.getLogger().info("Загрузка языка завершена.");
 			
-			//ClientConfigAction.call();
 			//frame = new Frame();
+			Font f = GUIResourseLoader.loadFont();
+			if (f != null) {
+				FontUIResource fur = new FontUIResource(GUIResourseLoader.loadFont());
+				Enumeration<Object> keys = UIManager.getDefaults().keys();
+				while (keys.hasMoreElements()) {
+					Object key = keys.nextElement();
+					Object value = UIManager.get (key);
+					if (value instanceof javax.swing.plaf.FontUIResource)
+						UIManager.put (key, fur);
+				}
+			}
 			createGraphic();
 			Log.getLogger().info("Загрузка окна завершена.");
 			
+
+			Log.getLogger().info("Инициализация сохраненного аккаунта...");
 			try {
-				account = new Account(new ServerVO(Config.SERVER_LINK, Config.SERVER_NAME), Config.USER_LOGIN, Config.USER_PASSWORD);
+				account = new Account(new ServerVO(Config.SERVER_LINK, Config.SERVER_NAME,false), Config.USER_LOGIN, Config.USER_PASSWORD);
 				account.getServer().setProtocol(genProtocolByName(Config.SERVER_PROTOCOL, account.getServer()));
-				account.getServer().getProtocol().login(account);
-				server = account.getServer();
-				server.getProtocol().getResponse();
-				Log.getLogger().info("Авторизация успешна. login: "+account.getLogin());
-				//frame.changeWindow(Frame.WINDOW_MAIN);
-				frame.setLogin(true);
+				if (autoauth && !account.getLogin().equalsIgnoreCase("") && !account.getServer().getIP().equalsIgnoreCase("")) {
+					account.getServer().getProtocol().login(account);
+					account.getServer().getProtocol().getResponse();
+					Log.getLogger().info("Авторизация успешна. login: "+account.getLogin());
+					//frame.changeWindow(Frame.WINDOW_MAIN);
+					frame.setLogin(true);
+				} else {
+					if (account != null && account.getServer().getProtocol() != null)
+						account.getServer().getProtocol().getResponse();
+					frame.updateServers(GraphActions.getServerList());
+					frame.setLogin(false);
+				}
 			} catch (AuthException e) {
 				//searchServers();
 				frame.updateServers(GraphActions.getServerList());
@@ -90,33 +116,19 @@ public abstract class Main {
 				frame.setLogin(false);
 			} catch (Exception e) {
 				account = null;
-				server = null;
 			}
 			Log.getLogger().info("Система аккаунтов и серверный протокол загружены.");
 			
 			DiscordController.load();
-			Log.getLogger().info("Discord RPC запущен...");
+			if (Config.DISCORD_ALLOW)
+				Log.getLogger().info("Интеграция discord запущена.");
 			
-			Thread load = new Thread(new Runnable() {
-				@Override
-				public void run() {
-					Log.getLogger().info("Проверка обновлений...");
-					if (checkUpdate()) {
-						Log.getLogger().info("Найдено новое обновление.");
-						/*Object[] options = { locale.get("yes"), locale.get("no") };
-						Integer a = frame.showQuestionDialog(locale.get("update_title"), locale.get("update").replaceFirst("%%VERSION%%", Config.UPDATE_NEW_VERSION),options );*/
-						if (frame.questionDialog(locale.get("update").replaceFirst("%%VERSION%%", Config.UPDATE_NEW_VERSION), locale.get("update_title"))) {
-							updateLauncher.start();
-						} else {
-							Log.getLogger().info("Обновление отклонено пользователем.");
-						}
-					} else {
-						Log.getLogger().info("Обновлений не найдено");
-					}
-				}
-			});
+			if (frame != null)
 			frame.loadingComplite();
-			load.start();
+			if (Config.IS_UPDATE_CHECK == true) {
+				Thread th = new Thread(checkUpdate);
+				th.start();
+			} else Log.getLogger().info("Проверка обновлений отключена. Игнорирую обновления...");
 			Log.getLogger().info("Инициализация завершена.");
 		} catch (Throwable ex) {
 			logger.log(Level.SEVERE, "Критическая ошибка", ex);
@@ -126,29 +138,23 @@ public abstract class Main {
 					+ "Ниже приведен отчет о работе лаунчера.");
 		}
 	}
-	/**
-	 * Обновить список локализаций
-	 */
-	/*@SuppressWarnings("unchecked")
-	public static void updateLocales() {
-		
-		ComboBoxC<Locale> locs = null;
-		
-		if (frame.getWindow(Frame.WINDOW_SETTINGS).getComponent("LanguageList") instanceof ComboBoxC<?>)
-			locs = (ComboBoxC<Locale>) frame.getWindow(Frame.WINDOW_SETTINGS).getComponent("LanguageList");
-		
-		if (locs != null) {
-			locs.removeAllItems();
-			locs.addItem(locale);
-			
-			if (!locale.getID().equalsIgnoreCase("ru"))
-				locs.addItem(new Locale("ru", "Русский"));
-			
-			if (!locale.getID().equalsIgnoreCase("en"))
-				locs.addItem(new Locale("en", "English"));
+	private static Runnable checkUpdate = new Runnable() {
+		@Override
+		public void run() {
+			Log.getLogger().info("Проверка обновлений...");
+			if (checkUpdate()) {
+				Log.getLogger().info("Найдено новое обновление.");
+				/*Object[] options = { locale.get("yes"), locale.get("no") };
+				Integer a = frame.showQuestionDialog(locale.get("update_title"), locale.get("update").replaceFirst("%%VERSION%%", Config.UPDATE_NEW_VERSION),options );*/
+				if (frame.questionDialog(locale.get("update").replaceFirst("%%VERSION%%", Config.UPDATE_NEW_VERSION), locale.get("update_title")))
+					new Thread(updateLauncher).start();
+				else
+					Log.getLogger().info("Обновление отклонено пользователем.");
+			} else {
+				Log.getLogger().info("Обновлений не найдено");
+			}
 		}
-		ChangeLocaleAction.on();
-	}*/
+	};
 	/**
 	 * Получить протокол по его имени
 	 * @param name - имя протокола
@@ -157,92 +163,12 @@ public abstract class Main {
 	 */
 	public static ServerInterface genProtocolByName(String name, ServerVO vo) {
 		switch(name.trim()) {
-		case "soapbox-Locked":
-			return new SoapboxLocked(vo).getResponse();
 		case "RacingWorld":
-			return new RacingWorld(vo).getResponse();
+			return new RacingWorld(vo);
 		default:
 			return new Soapbox(vo);
 		}
 	}
-	/**
-	 * Обновить список серверов
-	 */
-	/*@SuppressWarnings("unchecked")
-	public static void searchServers() {
-		try {
-			
-			ComboBoxC<ServerVO> ServesComboBox = null;
-			
-			if (frame.getWindow(Frame.WINDOW_LOGIN).getComponent("ServersList") instanceof ComboBoxC<?>) {
-				ServesComboBox = (ComboBoxC<ServerVO>) frame.getWindow(Frame.WINDOW_LOGIN).getComponent("ServersList");
-				ServesComboBox.removeAllItems();
-			}
-			
-			DocumentBuilder documentBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-			Document document = documentBuilder.parse(Config.SERVERS_LIST_LINK);
-			
-			Node Servers = document.getDocumentElement();
-			NodeList items = Servers.getChildNodes();
-			
-			for (int i = 0; i < items.getLength(); i++) {
-				Node server = items.item(i);
-				if (server.getNodeName() == "server") {
-					AsyncTasksUtils.addTask(AsyncTasksUtils.call().new Task(() -> {
-						ComboBoxC<ServerVO> ServesComboBoxI = null;
-						
-						if (frame.getWindow(Frame.WINDOW_LOGIN).getComponent("ServersList") instanceof ComboBoxC<?>) {
-							ServesComboBoxI = (ComboBoxC<ServerVO>) frame.getWindow(Frame.WINDOW_LOGIN).getComponent("ServersList");
-						}
-						ServerVO vo = new ServerVO(server.getAttributes().getNamedItem("ip").getTextContent(),server.getTextContent());
-						vo.setProtocol(genProtocolByName(server.getAttributes().getNamedItem("protocol").getTextContent(),vo));
-						if (ServesComboBoxI != null)
-							ServesComboBoxI.addItem(vo);
-					}));
-				}
-			}
-			
-			try {
-				synchronized (AsyncTasksUtils.call()) {
-					AsyncTasksUtils.call().wait();
-				}
-			} catch (InterruptedException e) {}
-			
-			File custom_servers = new File(getWorkDir()+File.separator+"servers.xml");
-			
-			if (custom_servers.exists() && custom_servers.canRead()) {
-				documentBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-				document = documentBuilder.parse(custom_servers.getAbsolutePath());
-				
-				Servers = document.getDocumentElement();
-				items = Servers.getChildNodes();
-				
-				for (int i = 0; i < items.getLength(); i++) {
-					Node server = items.item(i);
-					if (server.getNodeName() == "server") {
-						if (server.getAttributes().getNamedItem("ip") == null || server.getAttributes().getNamedItem("protocol").getTextContent() == null) {
-							continue;
-						}
-						ServerVO vo = new ServerVO(server.getAttributes().getNamedItem("ip").getTextContent(),server.getTextContent());
-						vo.setProtocol(genProtocolByName(server.getAttributes().getNamedItem("protocol").getTextContent(),vo));
-						if (ServesComboBox != null)
-							ServesComboBox.addItem(vo);
-					}
-				}
-			}
-			
-			if (ServesComboBox != null) {
-				ServesComboBox.updateUI();
-			}
-			
-		} catch (ParserConfigurationException e) {
-			Log.print("Ошибка разбора данных, при попытке обновить список серверов.");
-		} catch (SAXException e) {
-			Log.print("Ошибка разбора синтаксиса, при попытке обновить список серверов.");
-		} catch (IOException e) {
-			Log.print(e.getStackTrace());
-		}
-	}*/
 	/**
 	 * Проверить вышло ли обновление лаунчера
 	 * @return
@@ -268,11 +194,11 @@ public abstract class Main {
 	/**
 	 * Обновление лаунчера
 	 */
-	public static Thread updateLauncher = new Thread(new Runnable() {
+	public static Runnable updateLauncher = new Runnable() {
 		@Override
 		public void run() {
 			try {
-				File file = new File(getWorkDir()+File.separator+"launcher_update.tmp");
+				File file = new File(getConfigDir()+File.separator+"launcher_update.tmp");
 				File fileLauncher = new File(ru.vadimka.nfswlauncher.Main.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath());
 				if (!fileLauncher.isDirectory()) {
 					
@@ -331,7 +257,7 @@ public abstract class Main {
 				frame.errorDialog(locale.get("update_error"), locale.get("update_error_title"));
 			}
 		}
-	});
+	};
 	/**
 	 * Перезапустить лаунчер
 	 */
@@ -354,19 +280,40 @@ public abstract class Main {
 	 * Получить рабочую директорию лаунчера
 	 * @return
 	 */
-	public static File getWorkDir() {
+	public static File getConfigDir() {
 		File wrkDir = null;
-		String userHome = System.getProperty("user.home",".");
-		String appdata = System.getenv("APPDATA");
-		if (appdata != null)
-			wrkDir = new File(appdata,"Need for Speed World"+File.separator);
-		else
-			wrkDir = new File(userHome,"Need for Speed World"+File.separator);
-		if ((!wrkDir.exists()) && (!wrkDir.mkdirs())) {
+		File userHome = new File(System.getProperty("user.home","."),Config.WINDOW_TITLE);
+		File local_share = new File(System.getProperty("user.home","."),".local"+File.separator+"share"+File.separator+Config.WINDOW_TITLE);
+		File appdata = new File(System.getenv("APPDATA"),"Need for Speed World");
+		if (appdata.getParentFile() != null && appdata.getParentFile().exists())
+			wrkDir = appdata;
+		else if (local_share.getParentFile() != null && local_share.getParentFile().exists())
+			wrkDir = local_share;
+		else if (userHome.getParentFile() != null && userHome.getParentFile().exists())
+			wrkDir = userHome;
+		else {
+			Log.getLogger().warning("Ошибка: Не удалось определить рабочую деректорию. ");
+			throw new RuntimeException("Рабочая директория не определена.");
+		}
+		if (!wrkDir.exists() && !wrkDir.mkdirs()) {
 			Log.getLogger().warning("Ошибка: Не удалось определить рабочую деректорию. ");
 			throw new RuntimeException("Рабочая директория не определена.");
 		}
 		return wrkDir;
+	}
+	/**
+	 * Получить рабочую директорию лаунчера
+	 * @return
+	 */
+	public static File getGameDir() {
+		return new File(Config.GAME_PATH).getParentFile();
+	}
+	/**
+	 * Получить рабочую директорию лаунчера
+	 * @return
+	 */
+	public static File getGameSettingsFile() {
+		return new File(getConfigDir().getAbsolutePath()+File.separator+"Settings"+File.separator+"UserSettings.xml");
 	}
 	/**
 	 * Получить язык установленный в операционной система
@@ -384,18 +331,26 @@ public abstract class Main {
 		System.exit(i);
 	}
 	/**
+	 * Кэш платформы. Чтобы не проверять ее каждый раз
+	 */
+	private static String CHACHE_PLATFORM;
+	/**
 	 * Получить операционную систему
 	 * @return
 	 */
 	public static String getPlatform() {
+		if (CHACHE_PLATFORM != null) return CHACHE_PLATFORM;
 		String osName = System.getProperty("os.name").toLowerCase();
 		if (osName.contains("linux") || osName.contains("unix")) {
+			CHACHE_PLATFORM = "Unix";
 			return "Unix";
 		}
 		else if (osName.contains("win")) {
+			CHACHE_PLATFORM = "Windows";
 			return "Windows";
 		}
 		else if (osName.contains("mac")) {
+			CHACHE_PLATFORM = "Mac";
 			return "Mac";
 		}
 		else return osName;
@@ -421,6 +376,7 @@ public abstract class Main {
 	public static void createGraphic() {
 		if (frame != null) return;
 		frame = new GUI();
+		//frame= new NullGUI();
 		frame.updateLocales(Locale.values());
 		frame.setVisible(true);
 		if (Main.account != null) {

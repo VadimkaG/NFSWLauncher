@@ -17,8 +17,6 @@ import java.util.logging.Logger;
 import ru.vadimka.nfswlauncher.theme.LogWindow;
 
 public abstract class Log {
-	private static Log INSTANCE;
-	public static Log get() {return INSTANCE;}
 	private static Logger LOGGER;
 	
 	public static void setLogger(Logger logger) {
@@ -29,7 +27,7 @@ public abstract class Log {
 	 * @param stacktrace - стэк пуей
 	 * @return
 	 */
-	private static String stackTraceToString(StackTraceElement[] stacktrace) {
+	public static String stackTraceToString(StackTraceElement[] stacktrace) {
 		String str = "\t";
 		for (StackTraceElement element : stacktrace) {
 			str += element.getClassName() + "."+element.getMethodName() + "(";
@@ -53,7 +51,7 @@ public abstract class Log {
 		Date today = Calendar.getInstance().getTime();
 		String todayAsString = df.format(today);
 		return Main.getWorkDir().getAbsolutePath()+"/rw_logs/"+todayAsString+".log";*/
-		return Main.getWorkDir().getAbsolutePath()+"/launcher.log";
+		return Main.getConfigDir().getAbsolutePath()+"/launcher.log";
 	}
 	
 	private static LogWindow logWindow = null;
