@@ -44,6 +44,10 @@ public interface GraphModule {
 	 */
 	String fileSelect();
 	/**
+	 * Получить путь к папке, который выберет пользователь
+	 */
+	String directorySelect();
+	/**
 	 * Показать/Скрыть окно
 	 */
 	void setVisible(boolean b);
@@ -57,6 +61,11 @@ public interface GraphModule {
 	 * @param locales - список локалей
 	 */
 	void updateLocales(Locale[] locales);
+	/**
+	 * Загружаются ли файлы в данный момент
+	 * @param Status
+	 */
+	void setDownloadState(boolean Status);
 	/**
 	 * уничтожить окно
 	 */

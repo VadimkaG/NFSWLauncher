@@ -2,6 +2,7 @@ package ru.vadimka.nfswlauncher.theme;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -30,8 +31,8 @@ import ru.vadimka.nfswlauncher.ValueObjects.Account;
 import ru.vadimka.nfswlauncher.ValueObjects.ClientSettings;
 import ru.vadimka.nfswlauncher.ValueObjects.ServerVO;
 import ru.vadimka.nfswlauncher.client.Game;
+import ru.vadimka.nfswlauncher.client.GameStartException;
 import ru.vadimka.nfswlauncher.utils.AsyncTasksUtils;
-import ru.vadimka.nfswlauncher.utils.RWAC;
 
 public class GraphActions {
 	/**
@@ -49,21 +50,29 @@ public class GraphActions {
 			for (int i = 0; i < items.getLength(); i++) {
 				Node server = items.item(i);
 				if (server.getNodeName() == "server") {
-					AsyncTasksUtils.addTask(new AsyncTasksUtils.Task(() -> {
-						ServerVO vo = new ServerVO(server.getAttributes().getNamedItem("ip").getTextContent(),server.getTextContent());
+					AsyncTasksUtils.addTask(() -> {
+						if (server.getAttributes().getNamedItem("ip") == null || server.getAttributes().getNamedItem("protocol").getTextContent() == null) {
+							Log.getLogger().warning("Один сервер не добавлен в список из-за неверной структуры в xml");
+							return;
+						}
+						boolean isHttps = false;
+						if (
+								server.getAttributes().getNamedItem("https") != null
+									&&
+								server.getAttributes().getNamedItem("https").getTextContent().equalsIgnoreCase("true")
+							) isHttps = true;
+						ServerVO vo = new ServerVO(server.getAttributes().getNamedItem("ip").getTextContent(),server.getTextContent(),isHttps);
 						vo.setProtocol(Main.genProtocolByName(server.getAttributes().getNamedItem("protocol").getTextContent(),vo));
 						servers.add(vo);
-					}));
+					});
 				}
 			}
 			
 			try {
-				synchronized (AsyncTasksUtils.call()) {
-					AsyncTasksUtils.call().wait();
-				}
+				AsyncTasksUtils.waitTasks();
 			} catch (InterruptedException e) {}
 			
-			File custom_servers = new File(Main.getWorkDir()+File.separator+"servers.xml");
+			File custom_servers = new File(Main.getConfigDir()+File.separator+"servers.xml");
 			
 			if (custom_servers.exists() && custom_servers.canRead()) {
 				documentBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
@@ -78,7 +87,13 @@ public class GraphActions {
 						if (server.getAttributes().getNamedItem("ip") == null || server.getAttributes().getNamedItem("protocol").getTextContent() == null) {
 							continue;
 						}
-						ServerVO vo = new ServerVO(server.getAttributes().getNamedItem("ip").getTextContent(),server.getTextContent());
+						boolean isHttps = false;
+						if (
+								server.getAttributes().getNamedItem("https") != null
+									&&
+								server.getAttributes().getNamedItem("https").getTextContent().equalsIgnoreCase("true")
+							) isHttps = true;
+						ServerVO vo = new ServerVO(server.getAttributes().getNamedItem("ip").getTextContent(),server.getTextContent(),isHttps);
 						vo.setProtocol(Main.genProtocolByName(server.getAttributes().getNamedItem("protocol").getTextContent(),vo));
 						servers.add(vo);
 					}
@@ -89,9 +104,12 @@ public class GraphActions {
 			Log.getLogger().warning("Ошибка разбора синтаксиса, при попытке обновить список серверов.");
 		} catch (ParserConfigurationException e) {
 			Log.getLogger().warning("Ошибка разбора данных, при попытке обновить список серверов.");
+		} catch (UnknownHostException e) {
+			Log.getLogger().warning("Не удалось соединиться с сервером, чтобы получить список серверов.");
 		} catch (IOException e) {
 			Log.getLogger().log(Level.WARNING,"Ошибка при попытке получить список серверов.",e);
 		}
+		
 		return null;
 	}
 	/**
@@ -104,7 +122,9 @@ public class GraphActions {
 	 * Получить текущий сервер
 	 */
 	public static ServerVO getCurrentServer() {
-		return Main.server;
+		if (Main.account == null || Main.account.getServer() == null) return null;
+		if (Main.account.getServer().getIP().equalsIgnoreCase("")) return null;
+		return Main.account.getServer();
 	}
 	/**
 	 * Получить текущий язык
@@ -116,48 +136,49 @@ public class GraphActions {
 	 * Получить имя сервера
 	 */
 	public static String getServerName() {
-		if (Main.server == null) return "";
-		return Main.server.getProtocol().get("SERVER_NAME");
+		if (Main.account == null || Main.account.getServer() == null) return "";
+		return Main.account.getServer().getProtocol().get("SERVER_NAME");
 	}
 	/**
 	 * Получить ссылку на discord текущего сервера
 	 */
 	public static String getServerDiscord() {
-		if (Main.server == null) return "";
-		return Main.server.getProtocol().get("DISCORD");
+		if (Main.account == null || Main.account.getServer() == null) return "";
+		return Main.account.getServer().getProtocol().get("DISCORD");
 	}
 	/**
 	 * Получить текущий онлайн на сервере
 	 */
 	public static String getServerOnline() {
-		if (Main.server == null) return "";
-		return Main.server.getProtocol().get("PLAYERS_ONLINE");
+		if (Main.account == null || Main.account.getServer() == null) return "";
+		return Main.account.getServer().getProtocol().get("PLAYERS_ONLINE");
 	}
 	/**
 	 * Получить максимальный онлайн на сервере
 	 */
 	public static String getServerOnlineMax() {
-		if (Main.server == null) return "";
-		return Main.server.getProtocol().get("PLAYERS_MAX");
+		if (Main.account == null || Main.account.getServer() == null) return "";
+		return Main.account.getServer().getProtocol().get("PLAYERS_MAX");
 	}
 	/**
 	 * Получить ссылку на сайт текущего сервера
 	 */
 	public static String getServerWebSite() {
-		if (Main.server == null) return "";
-		return Main.server.getProtocol().get("WEB_SITE");
+		if (Main.account == null || Main.account.getServer() == null) return "";
+		return Main.account.getServer().getProtocol().get("WEB_SITE");
 	}
 	/**
 	 * Получить описание текущего сервера
 	 */
 	public static String getServerDescription() {
-		if (Main.server == null) return "";
-		return Main.server.getProtocol().get("DESCRIPRION");
+		if (Main.account == null || Main.account.getServer() == null) return "";
+		return Main.account.getServer().getProtocol().get("DESCRIPRION");
 	}
 	/**
 	 * Получить имя пользователя
 	 */
 	public static String getUserName() {
+		if (Main.account == null || Main.account.getServer() == null) return "";
 		return Main.account.getLogin();
 	}
 	/**
@@ -192,16 +213,16 @@ public class GraphActions {
 	 * @param server - Копия объекта сервера
 	 */
 	public static void changeServer(ServerVO server) {
-		Main.server = server;
-		Main.server.getProtocol().getResponse();
+		Main.account.setServer(server);
+		Main.account.getServer().getProtocol().getResponse();
 	}
 	/**
 	 * Авторизировать пользователя
 	 */
 	public static void login(Account acc) {
 		Main.account = acc;
-		if (!Main.server.getIP().equalsIgnoreCase(acc.getServer().getIP()))
-			Main.server = acc.getServer();
+		/*if (!Main.account.getServer().getIP().equalsIgnoreCase(acc.getServer().getIP()))
+			Main.server = acc.getServer();*/
 		Config.setServer(acc.getServer().getName(), acc.getServer().getIP(),acc.getServer().getProtocol().getNameProtocol());
 		Config.setAccount(acc.getLogin(), acc.getPassword());
 		Config.save();
@@ -216,47 +237,63 @@ public class GraphActions {
 	 * Запустить игру
 	 */
 	public static void startGame() {
-		if (Main.account == null) {
-			Log.getLogger().warning("Ошибка: пользователь не инициализирован");
-			return;
-		}
-		if (!Main.account.isAuth()) {
-			Log.getLogger().warning("Ошибка: пользователь не авторизован");
-			return;
-		}
-		if (!Main.getPlatform().equalsIgnoreCase("Windows")) {
-			if (Main.getPlatform().equalsIgnoreCase("Unix")) {
-				if (Config.WINE_PATH.equalsIgnoreCase("")) {
-					Main.frame.errorDialog(
-							"Похоже вы играете на unix... Для этого вам нужно пройти в ~/Need For Speed World/launcher.cfg\n"
-							+ "и добавить две новые конфигураци:\n"
-							+ "winepath - путь к запуску wine\n"
-							+ "wineprefix - префикс wine, через которого будете запускать игру"
-							, Main.locale.get("launch_error_title"));
+		Main.frame.loading();
+		new Thread(() -> {
+			if (Main.account == null) {
+				Log.getLogger().warning("Ошибка: пользователь не инициализирован");
+				Main.frame.loadingComplite();
 				return;
-			} else
+			}
+			if (!Main.account.isAuth()) {
+				Log.getLogger().warning("Ошибка: пользователь не авторизован");
+				Main.frame.loadingComplite();
+				return;
+			}
+			if (!Main.getPlatform().equalsIgnoreCase("Windows")) {
+				if (Main.getPlatform().equalsIgnoreCase("Unix")) {
+					if (Config.WINE_PATH.equalsIgnoreCase("") || Config.WINE_PREFIX.equalsIgnoreCase("")) {
+						boolean que = Main.frame.questionDialog(Main.locale.get("msg_wine_info_1").replace("\\n", "\n"), Main.locale.get("launch_error_title"));
+						if (!que) {
+							Main.frame.loadingComplite();
+							return;
+						}
+						String WinePath = Main.frame.fileSelect();
+						if (WinePath == null) {
+							Main.frame.loadingComplite();
+							return;
+						}
+						Main.frame.infoDialog(Main.locale.get("msg_wine_info_2").replace("\\n", "\n"), Main.locale.get("launch_error_title"));
+						String WinePrefix = Main.frame.directorySelect();
+						if (WinePrefix == null) {
+							Main.frame.loadingComplite();
+							return;
+						}
+						Config.saveWineConfig(WinePath, WinePrefix);
+						Main.frame.infoDialog(Main.locale.get("msg_wine_info_2").replace("\\n", "\n"), Main.locale.get("launch_error_title"));
+				} else
 					Log.getLogger().info("Запуск игры в режиме wine...");
-			} else if (!Main.getPlatform().equalsIgnoreCase("Unix")) {
-				Main.frame.errorDialog("Похоже ваша платформа не поддерживается лаунчером.\nСожалеем, но дальше вам не пройти", Main.locale.get("launch_error_title"));
-				Log.getLogger().warning("Платформа "+Main.getPlatform()+" не поддерживается. Запуск отменен.");
-				return;
+				} else if (!Main.getPlatform().equalsIgnoreCase("Unix")) {
+					Main.frame.errorDialog("Похоже ваша платформа не поддерживается лаунчером.\nСожалеем, но дальше вам не пройти", Main.locale.get("launch_error_title"));
+					Log.getLogger().warning("Платформа "+Main.getPlatform()+" не поддерживается. Запуск отменен.");
+					Main.frame.loadingComplite();
+					return;
+				}
 			}
-		}
-		if (Config.GAME_PATH.equalsIgnoreCase("")) {
-			Main.frame.errorDialog(Main.locale.get("launch_error_file_not_choosed"), Main.locale.get("launch_error_title"));
-			//AChangeClient.actionPerformed(new ActionEvent(0, 0, ""));
-			String filePath = Main.frame.fileSelect();
-			if (filePath != null)
-				GraphActions.setGameFilePath(filePath);
-		} else {
-			if (RWAC.checkBeforeStart()) {
-				//ServerRedirrect sr = new ServerRedirrect(Main.account.getServer().getIP(), 8080);
-				Main.account.getServer().setRedirrect(Main.account.getServer().getIP()/*sr.getLocalHost()*/);
-				Main.game = new Game(Main.account.getToken(), Main.account.getID(), Main.account.getServer().getProtocol().getServerEngine(), Config.GAME_PATH);
-			} else {
-				Main.frame.errorDialog("Запуск модифицированных клиентов запрещен!", Main.locale.get("launch_error_title"));
+			if (Config.GAME_PATH.equalsIgnoreCase("")) {
+				Main.frame.errorDialog(Main.locale.get("launch_error_file_not_choosed"), Main.locale.get("launch_error_title"));
+				//AChangeClient.actionPerformed(new ActionEvent(0, 0, ""));
+				String filePath = Main.frame.fileSelect();
+				if (filePath != null)
+					GraphActions.setGameFilePath(filePath);
 			}
-		}
+			try {
+				Main.account.getServer().getProtocol().launchGame();
+			} catch (GameStartException e) {
+				Log.getLogger().log(Level.WARNING,"Ошибка при попытке запуска игры",e);
+				Main.frame.infoDialog(e.getMessage(), "Ошибка запуска");
+				Main.frame.loadingComplite();
+			}
+		}).start();
 	}
 	/**
 	 * Загрузить игровые настройки
@@ -275,7 +312,7 @@ public class GraphActions {
 				"shaderdetail",
 				"shadowdetail",
 				"watersimenable");
-		File fileConfig = new File(Main.getWorkDir()+File.separator+"Settings"+File.separator+"UserSettings.xml");
+		File fileConfig = Game.getConfigFile();
 		if (fileConfig.exists() && fileConfig.canRead()) {
 			try {
 				DocumentBuilder documentBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
@@ -320,59 +357,89 @@ public class GraphActions {
 	 */
 	public static void setGameSettings(ClientSettings settings) {
 		Log.getLogger().info("Сохранение настроек клиента...");
-		File fileConfig = new File(Main.getWorkDir()+File.separator+"Settings"+File.separator+"UserSettings.xml");
-		if (fileConfig.exists() && fileConfig.canRead() && fileConfig.canWrite()) {
-			try {
-				DocumentBuilder documentBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-				Document document;
-				document = documentBuilder.parse(fileConfig.getAbsolutePath());
-				Node Root = document.getDocumentElement();
-				NodeList items = Root.getChildNodes();
-				for (int i = 0; i < items.getLength(); i++) {
-					Node item = items.item(i);
-					switch (item.getNodeName().trim()) {
-					case "UI":
-						NodeList iitems = item.getChildNodes();
-						for (int ii = 0; ii < iitems.getLength(); ii++) {
-							Node iitem = iitems.item(ii);
-							if (iitem.getNodeName().equalsIgnoreCase("Language"))
-								iitem.setTextContent(settings.get(iitem.getNodeName().trim()));
-						}
-						break;
-					case "VideoConfig":
-						NodeList iitems1 = item.getChildNodes();
-						for (int ii = 0; ii < iitems1.getLength(); ii++) {
-							Node iitem = iitems1.item(ii);
-							if (settings.contents(iitem.getNodeName().trim()))
-								iitem.setTextContent(settings.get(iitem.getNodeName().trim()));
-						}
-						break;
-					default:
-						break;
+		File fileConfig = Game.getConfigFile();
+		if (!fileConfig.exists() || !fileConfig.canRead() || !fileConfig.canWrite()) {
+			Log.getLogger().warning("Не удалось прочесть файл настроек клиента.");
+			Main.frame.infoDialog(GraphActions.getLocale().get("savesettings_error"), GraphActions.getLocale().get("savesettings_error_title"));
+			return;
+		}
+		try {
+			DocumentBuilder documentBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+			Document document;
+			document = documentBuilder.parse(fileConfig.getAbsolutePath());
+			Node Root = document.getDocumentElement();
+			NodeList items = Root.getChildNodes();
+			for (int i = 0; i < items.getLength(); i++) {
+				Node item = items.item(i);
+				switch (item.getNodeName().trim()) {
+				case "UI":
+					NodeList iitems = item.getChildNodes();
+					for (int ii = 0; ii < iitems.getLength(); ii++) {
+						Node iitem = iitems.item(ii);
+						if (iitem.getNodeName().equalsIgnoreCase("Language"))
+							iitem.setTextContent(settings.get(iitem.getNodeName().trim()));
 					}
+					break;
+				case "VideoConfig":
+					NodeList iitems1 = item.getChildNodes();
+					for (int ii = 0; ii < iitems1.getLength(); ii++) {
+						Node iitem = iitems1.item(ii);
+						if (settings.contents(iitem.getNodeName().trim()))
+							iitem.setTextContent(settings.get(iitem.getNodeName().trim()));
+					}
+					break;
+				default:
+					break;
 				}
-				Transformer transformer = TransformerFactory.newInstance().newTransformer();
-				Result output = new StreamResult(fileConfig);
-				Source input = new DOMSource(document);
-				transformer.transform(input, output);
-			} catch (Exception e) {
-				Log.getLogger().log(Level.WARNING,"Ошабка при разборе настроек клиента",e);
 			}
-		} else
-			Log.getLogger().warning("Не найден файл настроек клиента");
+			Transformer transformer = TransformerFactory.newInstance().newTransformer();
+			Result output = new StreamResult(fileConfig);
+			Source input = new DOMSource(document);
+			transformer.transform(input, output);
+		} catch (Exception e) {
+			Log.getLogger().log(Level.WARNING,"Ошабка при разборе настроек клиента",e);
+		}
 	}
 	/**
 	 * Установить сервер
 	 * @param server объект сервера
 	 */
 	public static void setServer(ServerVO server) {
-		Main.server = server;
+		Main.account.setServer(server);
 	}
+	/**
+	 * Закрывать ли лаунчер после запуска игры
+	 */
 	public static boolean getBackgroundWork() {
 		return Config.BACKGROUND_WORCK_DENY;
 	}
-	public static void setBackgroundWork(boolean b) {
-		Config.BACKGROUND_WORCK_DENY = b;
+	/**
+	 * Проверять ли обновления при запуске лаунчера
+	 */
+	public static boolean getIsUpdateCheck() {
+		return Config.IS_UPDATE_CHECK;
+	}
+	/**
+	 * Установить "Закрывать ли лаунчер после запуска игры"
+	 * @param b - Логическое значение
+	 */
+	public static void setLauncherSettings(boolean BackgroundWork, boolean IsUpdateCheck, boolean discordAllow) {
+		Config.BACKGROUND_WORCK_DENY = BackgroundWork;
+		Config.IS_UPDATE_CHECK = IsUpdateCheck;
+		Config.DISCORD_ALLOW = discordAllow;
 		Config.save();
+	}
+	/**
+	 * Авторизован ли пользователь
+	 */
+	public static boolean isAuthed() {
+		if (Main.account == null) return false;
+		return Main.account.isAuth();
+	}
+	/**
+	 * Разрешить ли интеграцию дискорда
+	 */
+	public static boolean getDiscordAllow() {
+		return Config.DISCORD_ALLOW;
 	}
 }

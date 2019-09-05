@@ -3,7 +3,6 @@ package ru.vadimka.nfswlauncher.theme;
 import java.awt.Color;
 import java.awt.Desktop;
 import java.awt.Dimension;
-import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.Image;
 import java.awt.KeyEventDispatcher;
@@ -20,6 +19,7 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.Vector;
+import java.util.logging.Level;
 
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
@@ -62,6 +62,7 @@ import ru.vadimka.nfswlauncher.theme.customcomponents.ButtonC;
 import ru.vadimka.nfswlauncher.theme.customcomponents.DynBgC;
 import ru.vadimka.nfswlauncher.theme.customcomponents.ImageC;
 import ru.vadimka.nfswlauncher.theme.manager.StyleItem;
+import ru.vadimka.nfswlauncher.utils.DiscordController;
 
 public class GUI extends JFrame implements GraphModule {
 
@@ -71,16 +72,16 @@ public class GUI extends JFrame implements GraphModule {
 	/**
 	 * Launch the application.
 	 */
-	public static void main(String[] args) {
+	/*public static void main(String[] args) {
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {
 					GUI frame = new GUI();
 					frame.loading();
 					if (frame.serverList != null) {
-						frame.serverList.add(new ServerVO("", "RacingWorld"));
-						frame.serverList.add(new ServerVO("","WorldEvolved"));
-						frame.serverList.add(new ServerVO("","World Online PL"));
+						frame.serverList.add(new ServerVO("", "RacingWorld",false));
+						frame.serverList.add(new ServerVO("","WorldEvolved",false));
+						frame.serverList.add(new ServerVO("","World Online PL",false));
 					}
 					frame.setVisible(true);
 				} catch (Exception e) {
@@ -88,7 +89,7 @@ public class GUI extends JFrame implements GraphModule {
 				}
 			}
 		});
-	}
+	}*/
 	
 	private JPanel mainPanel;
 	private JPanel loginPanel;
@@ -145,9 +146,8 @@ public class GUI extends JFrame implements GraphModule {
 			public boolean dispatchKeyEvent(KeyEvent ke) {
 				if (ke.getKeyCode()==KeyEvent.VK_L && ke.isAltDown())
 					Log.showLogWindow();
-				if (ke.getKeyCode()==KeyEvent.VK_S && ke.isAltDown())
-					//ServerWindow.showInstance();
-					infoDialog("Опа....\nА куда это мы полезли?\nСервера захотели?\nНет уж, жди как все.","Пасхалочка?");
+				if (ke.getKeyCode()==KeyEvent.VK_ENTER && GraphActions.isAuthed() && loading == false)
+					GraphActions.startGame();
 				return false;
 			}
 		});
@@ -233,7 +233,7 @@ public class GUI extends JFrame implements GraphModule {
 		}
 		//*/
 		
-		JLabel lblWindowTitle = new JLabel(Config.WINDOW_TITLE+"    v "+Config.VERSION);
+		JLabel lblWindowTitle = new JLabel(Config.WINDOW_TITLE/*+"    v "+Config.VERSION*/);
 		lblWindowTitle.setForeground(Color.WHITE);
 		lblWindowTitle.setBounds(10, 7, 203, 15);
 		window.add(lblWindowTitle);
@@ -267,6 +267,7 @@ public class GUI extends JFrame implements GraphModule {
 						@Override
 						public void run() {
 							loading();
+							GraphActions.logout();
 							//GraphActions.logout();
 							setLogin(false);
 							loadingComplite();
@@ -382,7 +383,7 @@ public class GUI extends JFrame implements GraphModule {
 		serverList = new Vector<ServerVO>();
 		
 		ButtonC logBtn = new ButtonC(GraphActions.getLocale().get("btn_auth_submit"));
-		logBtn.setBounds(475, 406, 166, 39);
+		logBtn.setBounds(550, 406, 166, 39);
 		logBtn.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
@@ -426,7 +427,7 @@ public class GUI extends JFrame implements GraphModule {
 		loginPanel.add(logBtn);
 		
 		ButtonC regBtn = new ButtonC(GraphActions.getLocale().get("btn_reg_submit"));
-		regBtn.setBounds(209, 406, 166, 39);
+		regBtn.setBounds(350, 406, 166, 39);
 		regBtn.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
@@ -458,6 +459,31 @@ public class GUI extends JFrame implements GraphModule {
 			}
 		});
 		loginPanel.add(regBtn);
+		
+		ButtonC forgotBtn = new ButtonC(GraphActions.getLocale().get("btn_forgot_password"));
+		forgotBtn.setBounds(150, 406, 166, 39);
+		forgotBtn.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				Desktop desktop = Desktop.isDesktopSupported() ? Desktop.getDesktop() : null;
+				if (desktop != null && desktop.isSupported(Desktop.Action.BROWSE)) {
+					try {
+						desktop.browse(new URI(GraphActions.getCurrentServer().getProtocol().getLinkForgotPassword()));
+					} catch (Exception e1) {
+						e1.printStackTrace();
+						Log.getLogger().log(Level.WARNING,"",e1);
+					}
+				}
+			}
+		});
+
+		GUIResourseLoader.loadBtn(new GUIResourseLoader.Loader<StyleItem>() {
+			@Override
+			public void proc(StyleItem obj) {
+				forgotBtn.setStyle(obj);
+			}
+		});
+		loginPanel.add(forgotBtn);
 		
 		login_lblServerTitle = new JLabel("RacingWorld");
 		login_lblServerTitle.setHorizontalAlignment(SwingConstants.CENTER);
@@ -501,11 +527,15 @@ public class GUI extends JFrame implements GraphModule {
 				//loading();
 				new Thread(() -> {
 					ServerVO server = serverLV.getSelectedValue();
-					server.getProtocol().getResponse();
-					GraphActions.setServer(server);
-					SwingUtilities.invokeLater(() -> {
-						updateLoginWindow();
+					server.getProtocol().getResponse(new Runnable() {
+						@Override
+						public void run() {
+							SwingUtilities.invokeLater(() -> {
+								updateLoginWindow();
+							});
+						}
 					});
+					GraphActions.setServer(server);
 				}).start();
 			}
 		});
@@ -680,8 +710,9 @@ public class GUI extends JFrame implements GraphModule {
 		SimpleAttributeSet center = new SimpleAttributeSet();
 		StyleConstants.setAlignment(center, StyleConstants.ALIGN_CENTER);
 		doc.setParagraphAttributes(0, doc.getLength(), center, false);
+		gameStartFileField.setFont(gameStartFileField.getFont().deriveFont(10f));
 		gameStartFileField.setText(GraphActions.getLocale().get("btn_change_file_game")+"\n"+GraphActions.getGameFilePath());
-		gameStartFileField.setBounds(523, 221, 189, 39);
+		gameStartFileField.setBounds(523, 221, 189, 59);
 		gameStartFileField.addMouseListener(new MouseListener() {
 			@Override
 			public void mouseReleased(MouseEvent e) {}
@@ -693,7 +724,7 @@ public class GUI extends JFrame implements GraphModule {
 			public void mouseEntered(MouseEvent e) {}
 			@Override
 			public void mouseClicked(MouseEvent e) {
-				String file = fileSelect();
+				String file = fileSelect(GraphActions.getGameFilePath());
 				if (file == null) return;
 				gameStartFileField.setText(GraphActions.getLocale().get("btn_change_file_game")+"\n"+file);
 				GraphActions.setGameFilePath(file);
@@ -792,20 +823,52 @@ public class GUI extends JFrame implements GraphModule {
 		
 		JCheckBox checkBox = new JCheckBox("<html><body>"+GraphActions.getLocale().get("msg_background_work_deny")+"</body></html>");
 		checkBox.setForeground(Color.WHITE);
-		checkBox.setBounds(515, 267, 220, 30);
+		checkBox.setBounds(515, 287, 220, 30);
 		checkBox.setOpaque(false);
 		checkBox.setSelected(GraphActions.getBackgroundWork());
 		settingsPanel.add(checkBox);
+		
+		JCheckBox dont_update = new JCheckBox("<html><body>"+GraphActions.getLocale().get("update_check")+"</body></html>");
+		dont_update.setForeground(Color.WHITE);
+		dont_update.setBounds(515, 327, 220, 30);
+		dont_update.setOpaque(false);
+		dont_update.setSelected(GraphActions.getIsUpdateCheck());
+		settingsPanel.add(dont_update);
+		
+		JCheckBox discord_integration = new JCheckBox("<html><body>"+GraphActions.getLocale().get("discord_allow")+"</body></html>");
+		discord_integration.setForeground(Color.WHITE);
+		discord_integration.setBounds(515, 367, 220, 30);
+		discord_integration.setOpaque(false);
+		discord_integration.setSelected(GraphActions.getDiscordAllow());
+		settingsPanel.add(discord_integration);
 		
 		ButtonC btnSave = new ButtonC(GraphActions.getLocale().get("btn_client_settings_save"));
 		btnSave.setBounds(568, 437, 189, 39);
 		btnSave.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
+				
+				if (checkBox.isSelected() && discord_integration.isSelected()) discord_integration.setSelected(false);
+				
+				boolean discord_integration_changed = discord_integration.isSelected() != GraphActions.getDiscordAllow();
+				
+				if (
+						checkBox.isSelected() != GraphActions.getBackgroundWork() ||
+						dont_update.isSelected() != GraphActions.getIsUpdateCheck() ||
+						discord_integration_changed
+					)
+					GraphActions.setLauncherSettings(checkBox.isSelected(),dont_update.isSelected(), discord_integration.isSelected());
+				
+				if (discord_integration_changed) {
+					if (discord_integration.isSelected()) {
+						DiscordController.load();
+					} else {
+						DiscordController.shutdown();
+					}
+				}
+				
 				// Сохраняем язык игры
 				cset.setLanguage(((ClientLocale) clientLangField.getSelectedItem()).getId());
-				
-				GraphActions.setBackgroundWork(checkBox.isSelected());
 				
 				// Сохраняем режим звука
 				@SuppressWarnings("unchecked")
@@ -825,7 +888,8 @@ public class GUI extends JFrame implements GraphModule {
 				cset.setVsync(vsyncField.isSelected());
 				
 				// Записываем настройки
-				GraphActions.setGameSettings(cset);
+				if (Main.getPlatform().equalsIgnoreCase("Windows"))
+					GraphActions.setGameSettings(cset);
 			}
 		});
 
@@ -936,9 +1000,13 @@ public class GUI extends JFrame implements GraphModule {
 		
 		loading();
 	}
+	
+	private boolean loading = false;
 
 	@Override
 	public void loading() {
+		
+		loading = true;
 		
 		btnStart.setEnabled(false);
 		btnServers.setEnabled(false);
@@ -968,6 +1036,9 @@ public class GUI extends JFrame implements GraphModule {
 	}
 	@Override
 	public void loadingComplite() {
+		
+		loading = false;
+		
 		if (isLogged) {
 			//* 
 			lblServerTitle.setText(GraphActions.getServerName());
@@ -990,7 +1061,22 @@ public class GUI extends JFrame implements GraphModule {
 			new Thread(new Runnable() {
 				@Override
 				public void run() {
-					updateServers(GraphActions.getServerList());
+					List<ServerVO> servers = GraphActions.getServerList();
+					
+					if (servers == null) {
+						boolean isTry = true;
+						isTry = questionDialog("Ошибка при попытки проверки серверов\nПопробывать снова?", "Ошибка");
+						while (isTry) {
+							servers = GraphActions.getServerList();
+							if (servers == null)
+								isTry = questionDialog("Ошибка при попытки проверки серверов\nПопробывать снова?", "Ошибка");
+							else
+								isTry = false;
+						}
+					}
+					
+					updateServers(servers);
+					
 					mainPanel.setVisible(false);
 					loginPanel.setVisible(true);
 					
@@ -1078,10 +1164,33 @@ public class GUI extends JFrame implements GraphModule {
 		if (a == 0) return true;
 		else return false;
 	}
+	public String fileSelect(String text) {
+		String filePath = "";
+		JFileChooser filechooser = new JFileChooser(text);
+		int ret = filechooser.showDialog(null, GraphActions.getLocale().get("btn_change_file_game")); 
+		if (ret == JFileChooser.APPROVE_OPTION) {
+			File file = filechooser.getSelectedFile();
+			filePath = file.getAbsolutePath();
+			return filePath;
+		} else return null;
+	}
 	@Override
 	public String fileSelect() {
 		String filePath = "";
 		JFileChooser filechooser = new JFileChooser();
+		int ret = filechooser.showDialog(null, GraphActions.getLocale().get("btn_change_file_game")); 
+		if (ret == JFileChooser.APPROVE_OPTION) {
+			File file = filechooser.getSelectedFile();
+			filePath = file.getAbsolutePath();
+			return filePath;
+		} else return null;
+	}
+	@Override
+	public String directorySelect() {
+		String filePath = "";
+		JFileChooser filechooser = new JFileChooser();
+		filechooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+		filechooser.setAcceptAllFileFilterUsed(false);
 		int ret = filechooser.showDialog(null, GraphActions.getLocale().get("btn_change_file_game")); 
 		if (ret == JFileChooser.APPROVE_OPTION) {
 			File file = filechooser.getSelectedFile();
@@ -1112,5 +1221,13 @@ public class GUI extends JFrame implements GraphModule {
 	public void destroy() {
 		setVisible(false);
 		dispose();
+	}
+	@Override
+	public void setDownloadState(boolean Status) {
+		if (Status) {
+			lblServerTitle.setText(GraphActions.getLocale().get("loading_files"));
+		} else {
+			lblServerTitle.setText(GraphActions.getLocale().get("loading"));
+		}
 	}
 }

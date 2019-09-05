@@ -45,6 +45,7 @@ public class LogWindow extends JFrame {
 	public LogWindow() {
 		setTitle("Лог-менеджер");
 		setBounds(100, 100, 500, 350);
+		//setDefaultCloseOperation(EXIT_ON_CLOSE);
 		contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		setContentPane(contentPane);
@@ -61,6 +62,7 @@ public class LogWindow extends JFrame {
 		JScrollPane scrollPane = new JScrollPane(logText);
 		contentPane.add(scrollPane);
 		updateLog();
+		setVisible(true);
 	}
 	/**
 	 * Установить описание
