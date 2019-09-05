@@ -52,6 +52,13 @@ public class Account {
 		return SERVER;
 	}
 	/**
+	 * Установить сервер
+	 * @param server
+	 */
+	public void setServer(ServerVO server) {
+		SERVER = server;
+	}
+	/**
 	 * Получить id
 	 * Если пользователь не авторизован, то вернет пустую строку
 	 * @return

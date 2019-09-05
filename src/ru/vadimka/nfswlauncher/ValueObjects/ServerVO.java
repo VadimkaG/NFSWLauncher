@@ -6,12 +6,14 @@ public class ServerVO {
 	private String IP;
 	private String redirIP;
 	private String NAME;
+	private boolean HTTPS;
 	private ServerInterface PROTOCOL;
 	
-	public ServerVO(String ip, String name) {
+	public ServerVO(String ip, String name, boolean isHttps) {
 		IP = ip;
 		NAME = name;
 		redirIP = null;
+		HTTPS = isHttps;
 	}
 	/**
 	 * Получить IP сервера
@@ -19,6 +21,22 @@ public class ServerVO {
 	 */
 	public String getIP() {
 		return IP;
+	}
+	/**
+	 * Получить IP вместе с HTTP
+	 */
+	public String getHttpLink() {
+		if (HTTPS) return "https://"+getIP();
+		else return "http://"+getIP();
+	}
+	/**
+	 * Получить редирект IP вместе с HTTP
+	 */
+	public String getRedirrectedHttpLink() {
+		String ip = IP;
+		if (redirIP != null) ip = redirIP;
+		if (HTTPS) return "https://"+ip;
+		else return "http://"+ip;
 	}
 	/**
 	 * Получить IP сервера
