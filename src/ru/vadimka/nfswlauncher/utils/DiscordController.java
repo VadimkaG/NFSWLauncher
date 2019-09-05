@@ -3,6 +3,7 @@ package ru.vadimka.nfswlauncher.utils;
 import club.minnced.discord.rpc.DiscordEventHandlers;
 import club.minnced.discord.rpc.DiscordRPC;
 import club.minnced.discord.rpc.DiscordRichPresence;
+import ru.vadimka.nfswlauncher.Config;
 import ru.vadimka.nfswlauncher.Log;
 
 public abstract class DiscordController {
@@ -15,18 +16,19 @@ public abstract class DiscordController {
 	 * Загрузить discord RPC
 	 */
 	public static void load() {
+		if (!Config.DISCORD_ALLOW) return;
 		lib = DiscordRPC.INSTANCE;
 		presence = new DiscordRichPresence();
-		String applicationId = ""; // Тут нужно вставить ваш Discord RPC ID
+		String applicationId = "569591780270669855";
 		DiscordEventHandlers handlers = new DiscordEventHandlers();
 		is_started = true;
 		
 		handlers.ready = (user) -> {
-			
+			Log.getLogger().info("Discord RPC инициализирован.");
 		};
 		
 		handlers.disconnected = (i, str) -> {
-			
+			Log.getLogger().info("Discord RPC завершен.");
 		};
 		
 		lib.Discord_Initialize(applicationId, handlers, true, null);
@@ -40,6 +42,7 @@ public abstract class DiscordController {
 	 * @param str
 	 */
 	public static void updateState(String state, String detail) {
+		if (!Config.DISCORD_ALLOW) return;
 		presence.state = state;
 		presence.details = detail;
 		lib.Discord_UpdatePresence(presence);

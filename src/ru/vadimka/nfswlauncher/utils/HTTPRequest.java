@@ -9,6 +9,7 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.logging.Level;
 import java.util.zip.GZIPInputStream;
 
 import ru.vadimka.nfswlauncher.Config;
@@ -25,6 +26,15 @@ public class HTTPRequest {
 	private Boolean n;
 	private Boolean output;
 	private Boolean gzip;
+	private long startTime = 0;
+	private long connectedTime = 0;
+	private Thread requestThread = null;
+	
+	private Action actionAfterRequest = null;
+	
+	private static final boolean DEBUG = true;
+	
+	private String USER_AGENT = "Mozilla/5.0 ("+System.getProperty("os.name")+" "+System.getProperty("os.arch")+") "+Config.WINDOW_TITLE+" "+Config.VERSION;
 	
 	/**
 	 * HTTP запрос
@@ -32,18 +42,19 @@ public class HTTPRequest {
 	 * @param params - параметры запроса
 	 * @param methodPost - Если true, то запрос POST. Если false, запрос GET
 	 */
-	public HTTPRequest(String URL,String params, Boolean methodPost) {
+	public HTTPRequest(String URL, String params, Boolean methodPost) {
 		n = false;
 		gzip = false;
 		try {
 			url = new URL(URL);
 			postData = params.getBytes( StandardCharsets.UTF_8 );
 			conn = (HttpURLConnection) url.openConnection();
-			conn.setDoInput(true);
-			output = true;
+			conn.setConnectTimeout(15 * 1000);
+			//conn.setDoInput(true);
+			output = methodPost;
 			conn.setDoOutput(output);
 			conn.setUseCaches(false);
-			conn.setRequestProperty("User-Agent", "Mozilla/5.0 ("+System.getProperty("os.name")+" "+System.getProperty("os.arch")+") "+Config.WINDOW_TITLE+" "+Config.VERSION);
+			conn.setRequestProperty("User-Agent", USER_AGENT);
 			if (methodPost) {
 				conn.setRequestMethod("POST");
 			} else {
@@ -51,13 +62,11 @@ public class HTTPRequest {
 			}
 			CHARSET = "";
 		} catch (MalformedURLException e) {
-			Log.print("Ошибка: Не корректная ссылка: "+URL);
-			Log.print(e.getStackTrace());
+			Log.getLogger().warning("Ошибка: Не корректная ссылка: "+URL);
 		} catch (IOException e) {
-			Log.print("Ошибка: Не удалось создать соединение с "+URL+". "+e.getMessage());
+			Log.getLogger().warning("Ошибка: Не удалось создать соединение с "+URL+". "+e.getMessage());
 		} catch (Exception e) {
-			Log.print("Ошибка: Непредвиденная ошибка инициализации соединения с "+URL);
-			Log.print(e.getStackTrace());
+			Log.getLogger().log(Level.WARNING,"Ошибка: Непредвиденная ошибка инициализации соединения с "+URL,e);
 		}
 	}
 	/**
@@ -71,22 +80,28 @@ public class HTTPRequest {
 			url = new URL(URL);
 			postData = "".getBytes( StandardCharsets.UTF_8 );
 			conn = (HttpURLConnection) url.openConnection();
-			conn.setDoInput(true);
+			conn.setConnectTimeout(15 * 1000);
+			//conn.setDoInput(true);
 			output = false;
-			conn.setDoOutput(output);
+			//conn.setDoOutput(output);
 			conn.setUseCaches(false);
-			conn.setRequestProperty("User-Agent", "Mozilla/5.0 ("+System.getProperty("os.name")+" "+System.getProperty("os.arch")+") "+Config.WINDOW_TITLE+" "+Config.VERSION);
+			conn.setRequestProperty("User-Agent", USER_AGENT);
 			conn.setRequestMethod("GET");
 			CHARSET = "";
 		} catch (MalformedURLException e) {
-			Log.print("Ошибка: Не корректная ссылка: "+URL);
-			Log.print(e.getStackTrace());
+			Log.getLogger().warning("Ошибка: Не корректная ссылка: "+URL);
 		} catch (IOException e) {
-			Log.print("Ошибка: Не удалось создать соединение с "+URL+". "+e.getMessage());
+			Log.getLogger().warning("Ошибка: Не удалось создать соединение с "+URL+". "+e.getMessage());
 		} catch (Exception e) {
-			Log.print("Ошибка: Непредвиденная ошибка инициализации соединения с "+URL);
-			Log.print(e.getStackTrace());
+			Log.getLogger().warning("Ошибка: Непредвиденная ошибка инициализации соединения с "+URL);
 		}
+	}
+	/**
+	 * Установить юзер-агент
+	 * @param agent
+	 */
+	public void setUserAgent(String agent) {
+		USER_AGENT = agent;
 	}
 	/**
 	 * Установить кодировку передаваемых данных
@@ -95,7 +110,8 @@ public class HTTPRequest {
 	 */
 	public void setCharset(String charset) {
 		CHARSET = charset;
-		conn.setRequestProperty("charset", charset);
+		//conn.setRequestProperty("charset", charset);
+		conn.setRequestProperty("Content-Type", "text/html; charset="+charset);
 	}
 	/**
 	 * Установить тип контента
@@ -123,36 +139,51 @@ public class HTTPRequest {
 	 * @return Ответ
 	 */
 	public void proc() {
-		try {
-			if (CHARSET.equalsIgnoreCase(""))
-				conn.setRequestProperty("charset", "utf-8");
-			if (gzip)
-				conn.setRequestProperty("Accept-Encoding", "gzip");
-			conn.setRequestProperty("Content-Length", Integer.toString(postData.length));
-			conn.connect();
-			if (output) {
-				DataOutputStream wr = new DataOutputStream(conn.getOutputStream());
-				wr.write(postData);
-				wr.close();
-			}
-		} catch (Exception e) {
-			Log.print("Ошибка: Не удалось подключиться к серверу. "+e.getMessage());
-		}
+		if (requestThread != null) return;
+		if (DEBUG) Log.getLogger().info("[HTTPRequest] Запрос \""+url.getHost()+"\" запущен.\nПолная ссылка: "+url.getHost()+url.getPath());
+		startTime = System.currentTimeMillis();
 		
+		requestThread = new Thread(new RequestConnect(this,actionAfterRequest));
+		requestThread.start();
+		
+	}
+	public boolean waitResponse() {
+		if (requestThread == null)
+			try {
+				Thread.sleep(500);
+			} catch (InterruptedException e1) {};
+		if (!requestThread.isAlive()) return true;
+		if (requestThread != null) {
+			synchronized (requestThread) {
+				try {
+					requestThread.wait();
+					return true;
+				} catch (InterruptedException e) {
+					Log.getLogger().log(Level.WARNING,"[HTTPRequest] Запрос приостановлен...",e);
+				}
+			}
+		}
+		return false;
 	}
 	/**
 	 * Получить код ответа от сервера
 	 * @return - Код ответа
 	 */
 	public int getResponseCode() {
+		if (!waitResponse()) {
+			Log.getLogger().warning("[HTTPRequest] Не получить код ответа.");
+			return 0;
+		}
+		return rawgetResponseCode();
+	}
+	private int rawgetResponseCode() {
 		try {
 			return conn.getResponseCode();
 		} catch (IOException e) {
-			Log.print("Ошибка: Не удалось получить код ответа от сервера. "+e.getMessage());
+			Log.getLogger().warning("Ошибка: Не удалось получить код ответа от сервера. "+e.getMessage());
 			return 0;
 		} catch (Exception e) {
-			Log.print("Ошибка: Непредвиденная ошибка при получении кода ответа от "+conn.getURL().toString());
-			Log.print(e.getStackTrace());
+			Log.getLogger().warning("Ошибка: Непредвиденная ошибка при получении кода ответа от "+conn.getURL().toString());
 			return 0;
 		}
 	}
@@ -161,6 +192,13 @@ public class HTTPRequest {
 	 * @return Ответ
 	 */
 	public String getResponse() {
+		if (!waitResponse()) {
+			Log.getLogger().warning("[HTTPRequest] Не удалось выполнить запрос.");
+			return "";
+		}
+		return rawgetResponse();
+	}
+	private String rawgetResponse() {
 		try {
 			InputStream is = conn.getInputStream();
 			StringBuilder response;
@@ -174,9 +212,12 @@ public class HTTPRequest {
 			}
 			is.close();
 			String str = response.toString();
+			if (DEBUG) Log.getLogger().info("[HTTPRequest] \""+url.getHost()+"\" вывод прочитан за "+(System.currentTimeMillis()-connectedTime)+" ms");
+			if (DEBUG) Log.getLogger().info("[HTTPRequest] \""+url.getHost()+"\" общее время обработки:  "+(System.currentTimeMillis()-startTime)+" ms");
 			return str;
 		} catch (Exception e) {
-			Log.print("Ошибка: Не удалось получить ответ от сервера. "+e.getMessage());
+			//Log.getLogger().warning("Ошибка: Не удалось получить ответ от сервера. "+e.getMessage());
+			Log.getLogger().log(Level.WARNING,"Ошибка: Не удалось получить ответ от сервера. "+e.getMessage(),e);
 			return "";
 		}
 	}
@@ -187,12 +228,12 @@ public class HTTPRequest {
 	public String getError() {
 		try {
 			InputStreamReader isr;
+			InputStream is = conn.getErrorStream();
+			if (is == null) return null;
 			if (gzip) {
-				InputStream is = conn.getErrorStream();
 				GZIPInputStream gis = new GZIPInputStream(is);
 				isr = new InputStreamReader(gis);
 			} else {
-				InputStream is = conn.getErrorStream();
 				isr = new InputStreamReader(is,"UTF-8");
 			}
 			StringBuilder response;
@@ -206,11 +247,96 @@ public class HTTPRequest {
 			}
 			isr.close();
 			String str = response.toString();
-			Log.print(conn.getHeaderField("Content-Type"));
+			Log.getLogger().info("[HTTPRequest] ошибка прочитана за "+(System.currentTimeMillis()-startTime));
 			return str;
 		} catch (Exception e) {
-			Log.print("Ошибка: Не удалось получить ответ от сервера. "+e.getLocalizedMessage());
+			//Log.getLogger().warning("Ошибка: Не удалось получить ответ от сервера. "+e.getLocalizedMessage());
+			Log.getLogger().log(Level.WARNING,"Ошибка: Не удалось получить ответ от сервера. "+e.getMessage(),e);
 			return "";
 		}
+	}
+	
+	public void addAction(Action action) {
+		action.setHTTPRequest(this);
+		actionAfterRequest = action;
+	}
+	public void waitRequest() {
+		if (requestThread != null && requestThread.isAlive()) {
+			synchronized (requestThread) {
+				try {
+					requestThread.wait();
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+					Log.getLogger().warning("[HTTPRequest] Запрос остановлен");
+				}
+			}
+		}
+	}
+	
+	public static abstract class Action implements Runnable {
+		
+		private HTTPRequest REQUEST;
+		
+		public Action() {}
+		
+		public abstract void run();
+		
+		public void setHTTPRequest(HTTPRequest request) {
+			REQUEST = request;
+		}
+		
+		protected int getResponseCode() {
+			return REQUEST.rawgetResponseCode();
+		}
+		
+		protected String getError() {
+			return REQUEST.getError();
+		}
+		
+		protected String getResponse() {
+			return REQUEST.rawgetResponse();
+		}
+	}
+	
+	public static class RequestConnect implements Runnable {
+		
+		protected HTTPRequest PARENT;
+		protected Action RUN;
+		
+		public RequestConnect(HTTPRequest request, Action runAfterRequest) {
+			PARENT = request;
+			RUN = runAfterRequest;
+		};
+		
+		public void run() {
+			try {
+				if (PARENT.CHARSET.equalsIgnoreCase(""))
+					PARENT.conn.setRequestProperty("Content-Type", "text/html; charset=utf-8");
+				if (PARENT.gzip)
+					PARENT.conn.setRequestProperty("Accept-Encoding", "gzip");
+				PARENT.conn.setRequestProperty("Content-Length", Integer.toString(PARENT.postData.length));
+				PARENT.conn.connect();
+				if (PARENT.output) {
+					DataOutputStream wr = new DataOutputStream(PARENT.conn.getOutputStream());
+					wr.write(PARENT.postData);
+					wr.close();
+				}
+			} catch (Exception e) {
+				//Log.getLogger().warning("[HTTPRequest] Ошибка: Не удалось подключиться к \""+url.getHost()+"\". "+e.getMessage());
+				Log.getLogger().log(Level.WARNING,"[HTTPRequest] Ошибка: Не удалось подключиться к \""+PARENT.url.getHost()+"\". "+e.getMessage(),e);
+			}
+			synchronized (PARENT.requestThread) {
+				PARENT.connectedTime = System.currentTimeMillis();
+				if (DEBUG) Log.getLogger().info("[HTTPRequest] \""+PARENT.url.getHost()+"\" запрос подключен за "+(System.currentTimeMillis()-PARENT.startTime)+" ms");
+			}
+			synchronized (PARENT) {
+				if (RUN != null) RUN.run();
+			}
+			synchronized (PARENT.requestThread) {
+				PARENT.requestThread.notifyAll();
+			}
+		}
+		
+		
 	}
 }

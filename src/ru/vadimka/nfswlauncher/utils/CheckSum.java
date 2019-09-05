@@ -44,6 +44,22 @@ public abstract class CheckSum {
 	 */
 	public static String print(InputStream path, boolean raw) {
 		byte[] bytes = get(path);
-		return ByteUtils.bytesToHexString(bytes, raw);
+		return bytesToHexString(bytes, raw);
+	}
+	/**
+	 * Преобразовать массив байтов в строку hex
+	 * @param bytes - Массив байтов
+	 * @param raw - Если true, то будет выводиться только два символа
+	 * @return
+	 */
+	public static String bytesToHexString(byte[] bytes, boolean raw) {
+		String data = "";
+		if (bytes.length < 1) return data;
+		for (int i = 0; i < bytes.length; i++) {
+			if (i != 0 && !raw) data += ", ";
+			if (!raw) data += "(byte) 0x";
+			data += Integer.toHexString((bytes[i] >> 4) & 0xf)+""+Integer.toHexString(bytes[i] & 0xf);
+		}
+		return data;
 	}
 }

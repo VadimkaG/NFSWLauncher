@@ -56,8 +56,10 @@ public class ConfigUtils {
 			String str;
 			while((str = br.readLine()) != null) {
 				strs = str.split(": ",2);
-				if (!str.substring(0, 1).equalsIgnoreCase("#") && !str.substring(0, 2).equalsIgnoreCase("//"))
+				
+				if (str.length() != 0 && strs.length > 1 && !str.substring(0, 1).equalsIgnoreCase("#") && !str.substring(0, 2).equalsIgnoreCase("//") && !str.contentEquals("")) {
 					storage.put(strs[0], strs[1]);
+				}
 			}
 			br.close();
 		} catch (FileNotFoundException e) {
@@ -112,8 +114,7 @@ public class ConfigUtils {
 	 */
 	public void set(String index, double value) {
 		set(index,String.valueOf(value));
-	}
-	/**
+	}/**
 	 * Получить значение из загруженного конфига
 	 * @param index - Индекс значения
 	 * @return String - Логическое значение
@@ -121,6 +122,17 @@ public class ConfigUtils {
 	public boolean getBoolean(String index) {
 		if (getString(index).equalsIgnoreCase("true")) return true;
 		else return false;
+	}
+	/**
+	 * Получить значение из загруженного конфига
+	 * @param index - Индекс значения
+	 * @param def - Значение по умолчанию
+	 * @return String - Логическое значение
+	 */
+	public boolean getBoolean(String index, boolean def) {
+		if (getString(index).equalsIgnoreCase("true")) return true;
+		else if (getString(index).equalsIgnoreCase("false")) return false;
+		return def;
 	}
 	/**
 	 * Получить значение из загруженного конфига
