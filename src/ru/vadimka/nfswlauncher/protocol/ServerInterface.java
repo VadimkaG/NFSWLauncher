@@ -2,6 +2,7 @@ package ru.vadimka.nfswlauncher.protocol;
 
 import ru.vadimka.nfswlauncher.AuthException;
 import ru.vadimka.nfswlauncher.ValueObjects.Account;
+import ru.vadimka.nfswlauncher.client.GameStartException;
 
 public interface ServerInterface {
 	/**
@@ -34,6 +35,10 @@ public interface ServerInterface {
 	/**
 	 * Получить информацию о сервере
 	 */
+	public ServerInterface getResponse(Runnable doAfter);
+	/**
+	 * Получить информацию о сервере
+	 */
 	public ServerInterface getResponse();
 	/**
 	 * Онлайн ли сервер
@@ -44,7 +49,24 @@ public interface ServerInterface {
 	 */
 	public String getNameProtocol();
 	/**
-	 * 
+	 * Получить пинг сервера
 	 */
 	public void ping();
+	/**
+	 * используется ли RWAC
+	 */
+	public boolean useRWAC();
+	/**
+	 * Получить индекс-xml RWAC
+	 */
+	public byte[] getRWACindex();
+	/**
+	 * Установить индекс-xml RWAC
+	 */
+	public void setRWACindex(byte[] index);
+	/**
+	 * Запустить игру
+	 * @throws Exception - Ошибка при запуске игры
+	 */
+	public void launchGame() throws GameStartException;
 }

@@ -23,11 +23,15 @@ import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 import ru.vadimka.nfswlauncher.AuthException;
+import ru.vadimka.nfswlauncher.Config;
 import ru.vadimka.nfswlauncher.Log;
 import ru.vadimka.nfswlauncher.Main;
 import ru.vadimka.nfswlauncher.ValueObjects.Account;
 import ru.vadimka.nfswlauncher.ValueObjects.ServerVO;
+import ru.vadimka.nfswlauncher.client.Game;
+import ru.vadimka.nfswlauncher.client.GameStartException;
 import ru.vadimka.nfswlauncher.utils.HTTPRequest;
+import ru.vadimka.nfswlauncher.utils.RWAC;
 
 public class Soapbox implements ServerInterface {
 	
@@ -36,6 +40,10 @@ public class Soapbox implements ServerInterface {
 	protected ServerVO VO;
 	
 	protected boolean SERVER_ONLINE = false;
+	
+	protected byte[] RWACindex = null;
+	
+	protected boolean RWACuse = false;
 	
 	private long PING = 0;
 	
@@ -50,12 +58,13 @@ public class Soapbox implements ServerInterface {
 				
 				HttpURLConnection conn = null;
 				try {
-					URL url = new URL("http://"+VO.getIP()+"/");
+					URL url = new URL(VO.getHttpLink()+"/");
 					long StartTime = System.currentTimeMillis();
 					conn = (HttpURLConnection) url.openConnection();
 					conn.connect();
 					if (conn.getResponseCode() == 200)
 						SERVER_ONLINE = true;
+					//else Log.getLogger().info("["+VO.getName()+"]Отвечен код: "+conn.getResponseCode());
 					conn.disconnect();
 					long EndTime = System.currentTimeMillis();
 					PING = EndTime-StartTime;
@@ -97,6 +106,7 @@ public class Soapbox implements ServerInterface {
 		if (STORAGE.containsKey(alias)) return STORAGE.get(alias);
 		else if (alias.equalsIgnoreCase("SERVER_NAME")) return VO.getName();
 		else if (alias.equalsIgnoreCase("ping")) return String.valueOf(PING);
+		else if (!SERVER_ONLINE) return "";
 		return alias;
 	}
 
@@ -108,8 +118,7 @@ public class Soapbox implements ServerInterface {
 			throw new AuthException("Данные для авторизации пусты");
 		}
 		HTTPRequest request = new HTTPRequest(
-				"http://"
-				+VO.getIP()
+				VO.getHttpLink()
 				+"/soapbox-race-core/Engine.svc/User/authenticateUser"
 				+HTTPRequest.DELIMER_FIRST
 				+"email="
@@ -121,6 +130,10 @@ public class Soapbox implements ServerInterface {
 		request.proc();
 		if (request.getResponseCode() == 200) {
 			String xml = request.getResponse();
+			if (xml.equalsIgnoreCase("")) {
+				Log.getLogger().warning("Ошибка логина: Данные пришедшие от сервера пусты....");
+				throw new AuthException("Не удалось разобрать ответ от сервера... Данные пришедшие от сервера пусты");
+			}
 			DocumentBuilderFactory dcFactory = DocumentBuilderFactory.newInstance();
 			DocumentBuilder dcBuilder;
 			try {
@@ -166,8 +179,7 @@ public class Soapbox implements ServerInterface {
 			throw new AuthException(Main.locale.get("msg_reg_error_email"));
 		}
 		
-		String URL = "http://"
-				+VO.getIP()
+		String URL = VO.getHttpLink()
 				+"/soapbox-race-core/Engine.svc/User/createUser"
 				+HTTPRequest.DELIMER_FIRST
 				+"email="
@@ -206,67 +218,89 @@ public class Soapbox implements ServerInterface {
 
 	@Override
 	public String getLinkForgotPassword() {
-		return "http://"+VO.getIP()+"/soapbox-race-core/forgotPasswd.jsp";
+		return VO.getHttpLink()+"/soapbox-race-core/forgotPasswd.jsp";
 	}
 
 	@Override
 	public String getServerEngine() {
-		return "http://"+VO.getRedirrectedIP()+"/soapbox-race-core/Engine.svc";
+		return VO.getRedirrectedHttpLink()+"/soapbox-race-core/Engine.svc";
 	}
-	
 	public ServerInterface getResponse() {
+		return getResponse(null);
+	}
+	public ServerInterface getResponse(Runnable doAfter) {
 		if (!SERVER_ONLINE) return this;
 		STORAGE.clear();
-		HTTPRequest request = new HTTPRequest("http://"+VO.getIP()+"/soapbox-race-core/Engine.svc/GetServerInformation");
-		request.proc();
-		if (request.getResponseCode() == 200) {
-			String result = request.getResponse();
-			//System.out.println(result);
-			try {
-				Object obj = new JSONParser().parse(result);
-				JSONObject jo = (JSONObject) obj;
-				
-				if (jo.containsKey("maxOnlinePlayers"))
-					STORAGE.put("PLAYERS_MAX", String.valueOf((long) jo.get("maxOnlinePlayers")));
-				else STORAGE.put("PLAYERS_MAX", "0");
-				
-				if (jo.containsKey("onlineNumber"))
-					STORAGE.put("PLAYERS_ONLINE", String.valueOf((long) jo.get("onlineNumber")));
-				else STORAGE.put("PLAYERS_ONLINE", "0");
-				
-				if (jo.containsKey("requireTicket"))
-					STORAGE.put("INVITE_REQUIRED", String.valueOf((boolean) jo.get("requireTicket")));
-				else 
-					STORAGE.put("INVITE_REQUIRED", "false");
-				
-				if (jo.containsKey("serverName")) {
-					String name = (String) jo.get("serverName");
-					if (!name.equalsIgnoreCase(""))
-						STORAGE.put("SERVER_NAME", (String) jo.get("serverName"));
-				}
-				
-				if (jo.containsKey("discordUrl"))
-					STORAGE.put("DISCORD", (String) jo.get("discordUrl"));
-				else STORAGE.put("DISCORD", "");
-				
-				if (jo.containsKey("homePageUrl"))
-					STORAGE.put("WEB_SITE", (String) jo.get("homePageUrl"));
-				else STORAGE.put("WEB_SITE", "");
-				
-				if (jo.containsKey("messageSrv"))
-					STORAGE.put("DESCRIPRION", (String) jo.get("messageSrv"));
-				else STORAGE.put("DESCRIPRION", "");
+		HTTPRequest request = new HTTPRequest(VO.getHttpLink()+"/soapbox-race-core/Engine.svc/GetServerInformation");
+		
+		request.addAction(new HTTPRequest.Action() {
+			@Override
+			public void run() {
+				if (getResponseCode() == 200) {
+					String result = getResponse();
+					//System.out.println(result);
+					try {
+						Object obj = new JSONParser().parse(result);
+						JSONObject jo = (JSONObject) obj;
+						
+						if (jo.containsKey("maxOnlinePlayers"))
+							STORAGE.put("PLAYERS_MAX", String.valueOf((long) jo.get("maxOnlinePlayers")));
+						else STORAGE.put("PLAYERS_MAX", "0");
+						
+						if (jo.containsKey("onlineNumber"))
+							STORAGE.put("PLAYERS_ONLINE", String.valueOf((long) jo.get("onlineNumber")));
+						else STORAGE.put("PLAYERS_ONLINE", "0");
+						
+						if (jo.containsKey("requireTicket"))
+							STORAGE.put("INVITE_REQUIRED", String.valueOf((boolean) jo.get("requireTicket")));
+						else 
+							STORAGE.put("INVITE_REQUIRED", "false");
+						
+						if (jo.containsKey("serverName")) {
+							String name = (String) jo.get("serverName");
+							if (!name.equalsIgnoreCase(""))
+								STORAGE.put("SERVER_NAME", (String) jo.get("serverName"));
+						}
+						
+						if (jo.containsKey("discordUrl"))
+							STORAGE.put("DISCORD", (String) jo.get("discordUrl"));
+						else STORAGE.put("DISCORD", "");
+						
+						if (jo.containsKey("homePageUrl"))
+							STORAGE.put("WEB_SITE", (String) jo.get("homePageUrl"));
+						else STORAGE.put("WEB_SITE", "");
+						
+						if (jo.containsKey("messageSrv"))
+							STORAGE.put("DESCRIPRION", (String) jo.get("messageSrv"));
+						else STORAGE.put("DESCRIPRION", "");
 
-				if (jo.containsKey("bannerUrl"))
-					STORAGE.put("BANNER", (String) jo.get("bannerUrl"));
-				else STORAGE.put("BANNER", "");
-				
-			} catch (ParseException e) {
-				Log.getLogger().warning("Ошибка: Не удалось разобрать данные пришедшие с "+VO.getIP()+". "+e.getMessage()+"\nПришедшие данные: "+result);
-			} catch (Exception e) {
-				Log.getLogger().log(Level.WARNING,"Ошибка при разборе данных "+VO.getIP()+". "+e.getLocalizedMessage(),e);
+						if (jo.containsKey("bannerUrl"))
+							STORAGE.put("BANNER", (String) jo.get("bannerUrl"));
+						else STORAGE.put("BANNER", "");
+						
+						// Получаем ключ, необходимый для авторизации
+						if (jo.containsKey("ServerPass"))
+							STORAGE.put("ssp", (String) jo.get("ServerPass"));
+						
+						if (jo.containsKey("rwacallow") && ((boolean)jo.get("rwacallow")) == true && !RWAC.isIndexDownloaded()) {
+							RWACuse = true;
+							RWAC.init();
+						}
+						
+					} catch (ParseException e) {
+						Log.getLogger().warning("Ошибка: Не удалось разобрать данные пришедшие с "+VO.getIP()+". "+e.getMessage()+"\nПришедшие данные: "+result);
+					} catch (Exception e) {
+						Log.getLogger().log(Level.WARNING,"Ошибка при разборе данных "+VO.getIP()+". "+e.getLocalizedMessage(),e);
+					}
+				}
+				if (doAfter != null) doAfter.run();
 			}
-		}
+		});
+
+		request.proc();
+		
+		request.waitRequest();
+		
 		return this;
 	}
 	/**
@@ -274,10 +308,33 @@ public class Soapbox implements ServerInterface {
 	 * @param email - Строка, которая будет проверена
 	 * @return Результат проверки
 	 */
-	private static Boolean EmailValidate(String email) {
+	protected static Boolean EmailValidate(String email) {
 		Pattern pattern = Pattern.compile("^[_A-Za-z0-9-\\+]+(\\.[_A-Za-z0-9-]+)*@" + "[A-Za-z0-9-]+(\\.[A-Za-z0-9]+)*(\\.[A-Za-z]{2,})$");
 		Matcher matcher = pattern.matcher(email);
 		return matcher.matches();
+	}
+	
+	public byte[] getRWACindex() {
+		return RWACindex;
+	}
+
+	@Override
+	public boolean useRWAC() {
+		return RWACuse;
+	}
+
+	@Override
+	public void setRWACindex(byte[] index) {
+		RWACindex = index;
+	}
+
+	@Override
+	public void launchGame() throws GameStartException {
+		if (!RWAC.checkBeforeStart()) throw new GameStartException(Main.locale.get("error_game_is_modified"));
+		//ServerRedirrect sr = new ServerRedirrect(Main.account.getServer().getIP(), 8080);
+		Main.account.getServer().setRedirrect(Main.account.getServer().getIP()/*sr.getLocalHost()*/);
+		Main.game = Game.call(Main.account.getToken(), Main.account.getID(), Main.account.getServer().getProtocol().getServerEngine(), Config.GAME_PATH);
+		//Main.frame.loadingComplite();
 	}
 
 }
