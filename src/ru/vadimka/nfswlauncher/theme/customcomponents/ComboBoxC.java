@@ -10,15 +10,15 @@ public class ComboBoxC<T> extends JComboBox<T> {
 
 	private static final long serialVersionUID = 6069568809110455625L;
 	
-	private String alias = "";
+	//private String alias = "";
 	
 	public ComboBoxC(String str) {
 		super();
-		alias = str;
+		//alias = str;
 	}
 	public ComboBoxC(ActionListener act,String str) {
 		super();
-		alias = str;
+		//alias = str;
 		addActionListener(act);
 	}
 	

@@ -79,8 +79,8 @@ public class ButtonC extends JButton implements MouseListener, Stylisable {
 		}
 		Graphics2D gt = (Graphics2D) g;
 		gt.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-		int xText = getWidth()/2-(getText().length()*(getFont().getSize()/2))/2;
-		int yText = getHeight()/2+getFont().getSize()/2;
+		int xText = getWidth()/2-g.getFontMetrics().stringWidth(getText())/2;
+		int yText = getHeight()/2+gt.getFont().getSize()/2;
 		if (!isEnabled() && Idisabled != null) {
 			if (TEXT_COLOR_DISABLED != null) setForeground(TEXT_COLOR_DISABLED);
 			gt.drawImage(Idisabled, 0, 0, getWidth(), getHeight(), null);

@@ -8,7 +8,7 @@ public class PassFieldC extends JPasswordField implements Stylisable {
 
 	private static final long serialVersionUID = -5881740635140730506L;
 	
-	private String alias = "";
+	//private String alias = "";
 	
 	public PassFieldC() {
 		super();
@@ -16,7 +16,7 @@ public class PassFieldC extends JPasswordField implements Stylisable {
 
 	public PassFieldC(int i, String str) {
 		super(i);
-		alias = str;
+		//alias = str;
 	}
 	public void setStyle(StyleItem style) {
 		if (style.getBackground() != null)

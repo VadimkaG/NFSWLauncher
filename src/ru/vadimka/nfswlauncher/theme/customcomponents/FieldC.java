@@ -11,7 +11,7 @@ public class FieldC extends JTextField implements FocusListener {
 
 	private static final long serialVersionUID = -8913634885412342253L;
 	
-	private String alias = "";
+	//private String alias = "";
 	
 	private String value = "";
 	private String HINT = "";
@@ -23,11 +23,11 @@ public class FieldC extends JTextField implements FocusListener {
 	
 	public FieldC(int i,String str) {
 		super(i);
-		alias = str;
+		//alias = str;
 	}
 	public FieldC(int i,String str, String hint) {
 		super(i);
-		alias = str;
+		//alias = str;
 		HINT = hint;
 		super.setText(HINT);
 		showingHint = true;

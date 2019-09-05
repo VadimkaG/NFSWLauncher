@@ -8,12 +8,12 @@ public class SliderC extends JSlider implements Stylisable {
 
 	private static final long serialVersionUID = 5728333020970934421L;
 
-	private String alias = "";
+	//private String alias = "";
 	
 	public SliderC(int i, String str) {
 		super();
 		super.setValue(i);
-		alias = str;
+		//alias = str;
 	}
 
 	@Override
