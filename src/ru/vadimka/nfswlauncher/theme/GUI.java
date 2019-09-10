@@ -448,7 +448,7 @@ public class GUI extends JFrame implements GraphModule {
 						Log.getLogger().warning("Ошибка регистрации. Описание: "+ex.getMessage());
 						loadingComplite();
 					}
-				});
+				}).start();
 			}
 		});
 
