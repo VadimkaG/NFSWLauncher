@@ -1,1 +1,1 @@
-0.11.2.1;https://www.dropbox.com/s/tmiei8pjeu0qvie/NFSWlauncher.jar?dl=1
+0.11.3;https://www.dropbox.com/s/tmiei8pjeu0qvie/NFSWlauncher.jar?dl=1
