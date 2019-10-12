@@ -163,8 +163,6 @@ public abstract class Main {
 	 */
 	public static ServerInterface genProtocolByName(String name, ServerVO vo) {
 		switch(name.trim()) {
-		case "RacingWorld":
-			return new RacingWorld(vo);
 		default:
 			return new Soapbox(vo);
 		}
