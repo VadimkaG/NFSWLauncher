@@ -72,6 +72,13 @@ public class LogWindow extends JFrame {
 		descriptionPane.setText(description);
 		return this;
 	}
+	/**
+	 * Чтобы программа закрывалась после закрытия окна
+	 */
+	public LogWindow setExitOnClose() {
+		setDefaultCloseOperation(EXIT_ON_CLOSE);
+		return this;
+	}
 	
 	public void updateLog() {
 		if (!Config.MODE_LOG_FILE) return;

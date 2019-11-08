@@ -23,15 +23,17 @@ import javax.swing.plaf.FontUIResource;
 import ru.vadimka.nfswlauncher.ValueObjects.Account;
 import ru.vadimka.nfswlauncher.ValueObjects.ServerVO;
 import ru.vadimka.nfswlauncher.client.Game;
-import ru.vadimka.nfswlauncher.protocol.RacingWorld;
+//import ru.vadimka.nfswlauncher.protocol.RacingWorld;
 import ru.vadimka.nfswlauncher.protocol.ServerInterface;
 import ru.vadimka.nfswlauncher.protocol.Soapbox;
-import ru.vadimka.nfswlauncher.protocol.SoapboxLocked;
+//import ru.vadimka.nfswlauncher.protocol.SoapboxLocked;
 import ru.vadimka.nfswlauncher.theme.GUI;
 import ru.vadimka.nfswlauncher.theme.GUIResourseLoader;
 import ru.vadimka.nfswlauncher.theme.GraphActions;
 import ru.vadimka.nfswlauncher.theme.GraphModule;
+import ru.vadimka.nfswlauncher.theme.InfoDialog;
 import ru.vadimka.nfswlauncher.theme.LogWindow;
+import ru.vadimka.nfswlauncher.theme.NullGUI;
 import ru.vadimka.nfswlauncher.utils.DiscordController;
 import ru.vadimka.nfswlauncher.utils.HTTPRequest;
 
@@ -42,12 +44,48 @@ public abstract class Main {
 	public static GraphModule frame = null;
 	public static Game game;
 	public static void main(String[] args) {
-		if (args.length == 1 && args[0].contentEquals("noautoauth"))
-			init(false);
-		else
-			init(true);
+		System.setProperty("file.encoding", "UTF-8");
+		boolean autoauth = true;
+		boolean showChangelog = false;
+		boolean fastJoin = false;
+		for (String str : args) {
+			switch (str) {
+			case "noautoauth":
+				autoauth = false;
+				break;
+			case "showChangelog":
+				showChangelog = true;
+				break;
+			}
+			if (str.length() >= 8 && str.substring(0,8).equalsIgnoreCase("fastjoin")) {
+				fastJoin = true;
+			}
+		}
+		if (fastJoin == false || !rawLauncher())
+			init(autoauth,showChangelog);
 	}
-	public static void init(boolean autoauth) {
+	public static boolean rawLauncher() {
+		logger = LogManager.getLogManager().getLogger("");
+		Log.setLogger(logger);
+		Config.load();
+		DiscordController.load();
+		frame = new NullGUI();
+		account = new Account(new ServerVO(Config.SERVER_LINK, Config.SERVER_NAME,false), Config.USER_LOGIN, Config.USER_PASSWORD);
+		account.getServer().setProtocol(genProtocolByName(Config.SERVER_PROTOCOL, account.getServer()));
+		if (!account.getLogin().equalsIgnoreCase("") && !account.getServer().getIP().equalsIgnoreCase("")) {
+			try {
+				account.getServer().getProtocol().login(account);
+				account.getServer().getProtocol().getResponse();
+				if (Config.GAME_PATH.equalsIgnoreCase("")) return false;
+				Main.account.getServer().getProtocol().launchGame();
+				return true;
+			} catch (Exception e) {
+				Log.getLogger().log(Level.WARNING,"Ошибка запуска",e);
+			}
+		}
+		return false;
+	}
+	public static void init(boolean autoauth,boolean showChangelog) {
 		LogManager.getLogManager().reset();
 		logger = LogManager.getLogManager().getLogger("");
 		if (Config.MODE_LOG_CONSOLE)
@@ -92,7 +130,7 @@ public abstract class Main {
 			createGraphic();
 			Log.getLogger().info("Загрузка окна завершена.");
 			
-
+			
 			Log.getLogger().info("Инициализация сохраненного аккаунта...");
 			try {
 				account = new Account(new ServerVO(Config.SERVER_LINK, Config.SERVER_NAME,false), Config.USER_LOGIN, Config.USER_PASSWORD);
@@ -109,13 +147,9 @@ public abstract class Main {
 					frame.updateServers(GraphActions.getServerList());
 					frame.setLogin(false);
 				}
-			} catch (AuthException e) {
-				//searchServers();
-				frame.updateServers(GraphActions.getServerList());
-				//frame.changeWindow(Frame.WINDOW_LOGIN);
-				frame.setLogin(false);
 			} catch (Exception e) {
-				account = null;
+				frame.updateServers(GraphActions.getServerList());
+				frame.setLogin(false);
 			}
 			Log.getLogger().info("Система аккаунтов и серверный протокол загружены.");
 			
@@ -124,18 +158,23 @@ public abstract class Main {
 				Log.getLogger().info("Интеграция discord запущена.");
 			
 			if (frame != null)
-			frame.loadingComplite();
+				frame.loadingComplite();
 			if (Config.IS_UPDATE_CHECK == true) {
 				Thread th = new Thread(checkUpdate);
 				th.start();
 			} else Log.getLogger().info("Проверка обновлений отключена. Игнорирую обновления...");
 			Log.getLogger().info("Инициализация завершена.");
+			if (showChangelog)
+				new InfoDialog().show();
 		} catch (Throwable ex) {
 			logger.log(Level.SEVERE, "Критическая ошибка", ex);
-			new LogWindow().setDescription("Обнаружена критическая ошибка, которая не позволяет программе работать.\n"
+			String msg = "Обнаружена критическая ошибка, которая не позволяет программе работать.\n"
 					+ "Пожалуйста сообщите о ней разработчику лаунчера\n"
 					+ "Email: vadik.golubeff@yandex.ru\n"
-					+ "Ниже приведен отчет о работе лаунчера.");
+					+ "Ниже приведен отчет о работе лаунчера.";
+			if (Main.locale != null)
+				msg = Main.locale.get("critical error").replace("\\n", "\n");
+			new LogWindow().setDescription(msg).setExitOnClose();
 		}
 	}
 	private static Runnable checkUpdate = new Runnable() {
@@ -163,6 +202,10 @@ public abstract class Main {
 	 */
 	public static ServerInterface genProtocolByName(String name, ServerVO vo) {
 		switch(name.trim()) {
+		/*case "soapbox-Locked":
+			return new SoapboxLocked(vo);
+		case "RacingWorld":
+			return new RacingWorld(vo);*/
 		default:
 			return new Soapbox(vo);
 		}
@@ -256,16 +299,23 @@ public abstract class Main {
 			}
 		}
 	};
+	public static void restart() {
+		restart(null);
+	}
 	/**
 	 * Перезапустить лаунчер
 	 */
-	public static void restart() {
+	public static void restart(String[] args) {
 		try {
 			ArrayList<String> params = new ArrayList<String>();
 			params.add(System.getProperty("java.home")+File.separator+"bin"+File.separator+"java");
 			params.add("-classpath");
 			params.add(ru.vadimka.nfswlauncher.Main.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath());
 			params.add(ru.vadimka.nfswlauncher.Main.class.getCanonicalName());
+			if (args != null)
+				for (String param : args) {
+					params.add(param);
+				}
 			ProcessBuilder pb = new ProcessBuilder(params);
 			Process process = pb.start();
 			if (process == null) throw new Exception("Ошибка запуска лаунера!");

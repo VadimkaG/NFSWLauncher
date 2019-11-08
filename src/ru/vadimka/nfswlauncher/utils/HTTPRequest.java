@@ -5,8 +5,10 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.ConnectException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.logging.Level;
@@ -30,6 +32,8 @@ public class HTTPRequest {
 	private long connectedTime = 0;
 	private Thread requestThread = null;
 	
+	private boolean error = false;
+	
 	private Action actionAfterRequest = null;
 	
 	private static final boolean DEBUG = true;
@@ -49,7 +53,7 @@ public class HTTPRequest {
 			url = new URL(URL);
 			postData = params.getBytes( StandardCharsets.UTF_8 );
 			conn = (HttpURLConnection) url.openConnection();
-			conn.setConnectTimeout(15 * 1000);
+			conn.setConnectTimeout(5 * 1000);
 			//conn.setDoInput(true);
 			output = methodPost;
 			conn.setDoOutput(output);
@@ -80,7 +84,7 @@ public class HTTPRequest {
 			url = new URL(URL);
 			postData = "".getBytes( StandardCharsets.UTF_8 );
 			conn = (HttpURLConnection) url.openConnection();
-			conn.setConnectTimeout(15 * 1000);
+			conn.setConnectTimeout(5 * 1000);
 			//conn.setDoInput(true);
 			output = false;
 			//conn.setDoOutput(output);
@@ -114,6 +118,14 @@ public class HTTPRequest {
 		conn.setRequestProperty("Content-Type", "text/html; charset="+charset);
 	}
 	/**
+	 * Установить заголовок для запроса
+	 * @param alias - Название заголовка
+	 * @param value - Значение заголовка
+	 */
+	public void setHeader(String alias, String value) {
+		conn.setRequestProperty(alias, value);
+	}
+	/**
 	 * Установить тип контента
 	 * @param type - тип контента
 	 */
@@ -140,6 +152,10 @@ public class HTTPRequest {
 	 */
 	public void proc() {
 		if (requestThread != null) return;
+		if (url == null || url.getHost().equalsIgnoreCase("")) {
+			Log.getLogger().warning("[HTTPRequest] Остановлена попытка выполнить HTTP запрос c NULL url");
+			return;
+		}
 		if (DEBUG) Log.getLogger().info("[HTTPRequest] Запрос \""+url.getHost()+"\" запущен.\nПолная ссылка: "+url.getHost()+url.getPath());
 		startTime = System.currentTimeMillis();
 		
@@ -156,7 +172,12 @@ public class HTTPRequest {
 		if (requestThread != null) {
 			synchronized (requestThread) {
 				try {
-					requestThread.wait();
+					requestThread.wait(/*3000*/);
+//					if (requestThread.isAlive()) {
+//						requestThread.interrupt();
+//						Log.getLogger().warning("[HTTPRequest] Не удалось дождаться запроса \""+url.getHost()+url.getPath()+"\".");
+//					}
+					if (error) return false;
 					return true;
 				} catch (InterruptedException e) {
 					Log.getLogger().log(Level.WARNING,"[HTTPRequest] Запрос приостановлен...",e);
@@ -170,8 +191,9 @@ public class HTTPRequest {
 	 * @return - Код ответа
 	 */
 	public int getResponseCode() {
+		if (error) return 0;
 		if (!waitResponse()) {
-			Log.getLogger().warning("[HTTPRequest] Не получить код ответа.");
+			if (DEBUG) Log.getLogger().warning("[HTTPRequest] Ожидание кода ответа вернуло false");
 			return 0;
 		}
 		return rawgetResponseCode();
@@ -180,7 +202,7 @@ public class HTTPRequest {
 		try {
 			return conn.getResponseCode();
 		} catch (IOException e) {
-			Log.getLogger().warning("Ошибка: Не удалось получить код ответа от сервера. "+e.getMessage());
+			Log.getLogger().warning("Ошибка: Не удалось получить код ответа от "+url.getHost()+url.getPath()+". "+e.getMessage());
 			return 0;
 		} catch (Exception e) {
 			Log.getLogger().warning("Ошибка: Непредвиденная ошибка при получении кода ответа от "+conn.getURL().toString());
@@ -192,8 +214,9 @@ public class HTTPRequest {
 	 * @return Ответ
 	 */
 	public String getResponse() {
+		if (error) return "";
 		if (!waitResponse()) {
-			Log.getLogger().warning("[HTTPRequest] Не удалось выполнить запрос.");
+			if (DEBUG) Log.getLogger().warning("[HTTPRequest] Ожидание ответа вернуло false.");
 			return "";
 		}
 		return rawgetResponse();
@@ -217,7 +240,7 @@ public class HTTPRequest {
 			return str;
 		} catch (Exception e) {
 			//Log.getLogger().warning("Ошибка: Не удалось получить ответ от сервера. "+e.getMessage());
-			Log.getLogger().log(Level.WARNING,"Ошибка: Не удалось получить ответ от сервера. "+e.getMessage(),e);
+			Log.getLogger().log(Level.WARNING,"Ошибка: Не удалось получить ответ от "+url.getHost()+url.getPath()+". "+e.getMessage(),e);
 			return "";
 		}
 	}
@@ -264,7 +287,7 @@ public class HTTPRequest {
 		if (requestThread != null && requestThread.isAlive()) {
 			synchronized (requestThread) {
 				try {
-					requestThread.wait();
+					requestThread.wait(3000);
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 					Log.getLogger().warning("[HTTPRequest] Запрос остановлен");
@@ -280,6 +303,8 @@ public class HTTPRequest {
 		public Action() {}
 		
 		public abstract void run();
+		
+		public void error() {};
 		
 		public void setHTTPRequest(HTTPRequest request) {
 			REQUEST = request;
@@ -321,19 +346,30 @@ public class HTTPRequest {
 					wr.write(PARENT.postData);
 					wr.close();
 				}
+				synchronized (PARENT.requestThread) {
+					PARENT.connectedTime = System.currentTimeMillis();
+					if (DEBUG) Log.getLogger().info("[HTTPRequest] \""+PARENT.url.getHost()+"\" запрос подключен за "+(System.currentTimeMillis()-PARENT.startTime)+" ms");
+				}
+				synchronized (PARENT) {
+					if (RUN != null) RUN.run();
+				}
+			} catch (ConnectException e) {
+				Log.getLogger().warning("[HTTPRequest] Ошибка: Не удалось подключиться к \""+PARENT.url.getHost()+PARENT.url.getPath()+"\". "+e.getMessage());
+				PARENT.error = true;
+				if (RUN != null) RUN.error();
+			} catch (SocketTimeoutException e) {
+				Log.getLogger().warning("[HTTPRequest] Ошибка: Не удалось подключиться к \""+PARENT.url.getHost()+PARENT.url.getPath()+"\". "+e.getMessage());
+				PARENT.error = true;
+				if (RUN != null) RUN.error();
 			} catch (Exception e) {
 				//Log.getLogger().warning("[HTTPRequest] Ошибка: Не удалось подключиться к \""+url.getHost()+"\". "+e.getMessage());
-				Log.getLogger().log(Level.WARNING,"[HTTPRequest] Ошибка: Не удалось подключиться к \""+PARENT.url.getHost()+"\". "+e.getMessage(),e);
-			}
-			synchronized (PARENT.requestThread) {
-				PARENT.connectedTime = System.currentTimeMillis();
-				if (DEBUG) Log.getLogger().info("[HTTPRequest] \""+PARENT.url.getHost()+"\" запрос подключен за "+(System.currentTimeMillis()-PARENT.startTime)+" ms");
-			}
-			synchronized (PARENT) {
-				if (RUN != null) RUN.run();
-			}
-			synchronized (PARENT.requestThread) {
-				PARENT.requestThread.notifyAll();
+				Log.getLogger().log(Level.WARNING,"[HTTPRequest] Ошибка: Не удалось подключиться к \""+PARENT.url.getHost()+PARENT.url.getPath()+"\". "+e.getMessage(),e);
+				PARENT.error = true;
+				if (RUN != null) RUN.error();
+			} finally {
+				synchronized (PARENT.requestThread) {
+					PARENT.requestThread.notifyAll();
+				}
 			}
 		}
 		

@@ -7,8 +7,8 @@ import java.awt.RenderingHints;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
-import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 
 import javax.imageio.ImageIO;
 import javax.swing.JComponent;
@@ -30,11 +30,8 @@ public class DynBgC extends JComponent implements ActionListener {
 	private int width_add = 1;
 	private int height_add = 1;
 	
-	public DynBgC() {}
-	
-	public DynBgC(Image imagePath) {
-		img = (BufferedImage) imagePath;
-		configImage();
+	public DynBgC(InputStream imageStream, int x, int y) {
+		setImage(imageStream,x,y);
 		start();
 	}
 	private void configImage() {
@@ -85,22 +82,19 @@ public class DynBgC extends JComponent implements ActionListener {
 		//else if (rand < 0.1 && width_add != 0) height_add = 0;
 		else height_add = -1;
 	}
-	public void setImage(BufferedImage image) {
-		img = image;
-		configImage();
-	}
-	public void setImage(String imagePath) {
+	public void setImage(InputStream imageStream, int x, int y) {
 		Thread th = new Thread(new Runnable() {
 			@Override
 			public void run() {
 				try {
-					img = ImageIO.read(new File(imagePath));
+					//img = ImageIO.read(new File(imagePath));
+					img = ImageC.subsampleImage(ImageIO.createImageInputStream(imageStream), x, y);
 					configImage();
 					/*width = img.getWidth();
 					height = img.getHeight();*/
 					//this.setSize(width,height);
 				} catch (IOException e) {
-					Log.getLogger().warning("Ошибка загрузки картинки: "+imagePath);
+					Log.getLogger().warning("Ошибка загрузки картинки");
 				}
 			}
 		});

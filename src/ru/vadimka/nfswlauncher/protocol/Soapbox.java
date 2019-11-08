@@ -27,10 +27,12 @@ import ru.vadimka.nfswlauncher.Config;
 import ru.vadimka.nfswlauncher.Log;
 import ru.vadimka.nfswlauncher.Main;
 import ru.vadimka.nfswlauncher.ValueObjects.Account;
+import ru.vadimka.nfswlauncher.ValueObjects.RWACIndex;
 import ru.vadimka.nfswlauncher.ValueObjects.ServerVO;
 import ru.vadimka.nfswlauncher.client.Game;
 import ru.vadimka.nfswlauncher.client.GameStartException;
 import ru.vadimka.nfswlauncher.utils.HTTPRequest;
+import ru.vadimka.nfswlauncher.utils.HTTPRequest.Action;
 import ru.vadimka.nfswlauncher.utils.RWAC;
 
 public class Soapbox implements ServerInterface {
@@ -41,17 +43,14 @@ public class Soapbox implements ServerInterface {
 	
 	protected boolean SERVER_ONLINE = false;
 	
-	protected byte[] RWACindex = null;
-	
-	protected boolean RWACuse = false;
+	protected RWACIndex RWACindex = null;
 	
 	private long PING = 0;
 	
 	public Soapbox(ServerVO vo) {
 		VO = vo;
-		ping();
+		//ping();
 	}
-	
 	public void ping() {
 		if (!VO.getIP().equalsIgnoreCase("")) {
 			Thread ping = new Thread(() -> {
@@ -59,16 +58,20 @@ public class Soapbox implements ServerInterface {
 				HttpURLConnection conn = null;
 				try {
 					URL url = new URL(VO.getHttpLink()+"/");
-					long StartTime = System.currentTimeMillis();
 					conn = (HttpURLConnection) url.openConnection();
+					conn.setReadTimeout(1400);
+					final long StartTime = System.currentTimeMillis();
 					conn.connect();
+					PING = System.currentTimeMillis()-StartTime;
 					if (conn.getResponseCode() == 200)
 						SERVER_ONLINE = true;
+					else
+						SERVER_ONLINE = false;
 					//else Log.getLogger().info("["+VO.getName()+"]Отвечен код: "+conn.getResponseCode());
 					conn.disconnect();
-					long EndTime = System.currentTimeMillis();
-					PING = EndTime-StartTime;
+					
 				} catch (IOException e) {
+					SERVER_ONLINE = false;
 					Log.getLogger().warning("Ошибка при попытке запинговать сервер "+VO.getName());
 					if (conn != null)
 						conn.disconnect();
@@ -85,7 +88,7 @@ public class Soapbox implements ServerInterface {
 					if (ping.isAlive()) {
 						ping.interrupt();
 						//Log.getLogger().warning("Сервер "+VO.getName()+" не отвечает.");
-						PING = 1;
+						PING = 0;
 						SERVER_ONLINE = false;
 					}
 				} catch (InterruptedException e) {}
@@ -96,7 +99,7 @@ public class Soapbox implements ServerInterface {
 	public String getNameProtocol() {
 		return "soapbox";
 	}
-	
+	@Override
 	public boolean isOnline() {
 		return SERVER_ONLINE;
 	}
@@ -112,7 +115,8 @@ public class Soapbox implements ServerInterface {
 
 	@Override
 	public void login(Account acc) throws AuthException {
-		if (!SERVER_ONLINE) throw new AuthException("Сервер не отвечает");
+		//if (!SERVER_ONLINE) throw new AuthException("Сервер не отвечает");
+		if (acc == null) return;
 		
 		if (acc.getLogin().equalsIgnoreCase("") || acc.getPassword().equalsIgnoreCase("")) {
 			throw new AuthException("Данные для авторизации пусты");
@@ -229,7 +233,7 @@ public class Soapbox implements ServerInterface {
 		return getResponse(null);
 	}
 	public ServerInterface getResponse(Runnable doAfter) {
-		if (!SERVER_ONLINE) return this;
+		//if (!SERVER_ONLINE) return this;
 		STORAGE.clear();
 		HTTPRequest request = new HTTPRequest(VO.getHttpLink()+"/soapbox-race-core/Engine.svc/GetServerInformation");
 		
@@ -237,6 +241,7 @@ public class Soapbox implements ServerInterface {
 			@Override
 			public void run() {
 				if (getResponseCode() == 200) {
+					SERVER_ONLINE = true;
 					String result = getResponse();
 					//System.out.println(result);
 					try {
@@ -282,9 +287,12 @@ public class Soapbox implements ServerInterface {
 						if (jo.containsKey("ServerPass"))
 							STORAGE.put("ssp", (String) jo.get("ServerPass"));
 						
-						if (jo.containsKey("rwacallow") && ((boolean)jo.get("rwacallow")) == true && !RWAC.isIndexDownloaded()) {
-							RWACuse = true;
-							RWAC.init();
+						if (jo.containsKey("rwacallow") && ((boolean)jo.get("rwacallow")) == true) {
+							RWACindex = new RWACIndex(
+//								"https://www.dropbox.com/s/q0enm212ux5bdc8/FilesChecker.xml?dl=1"
+								VO.getHttpLink()+"/soapbox-race-core/fileschecker"
+									);
+							RWACindex.download();
 						}
 						
 					} catch (ParseException e) {
@@ -294,6 +302,12 @@ public class Soapbox implements ServerInterface {
 					}
 				}
 				if (doAfter != null) doAfter.run();
+			}
+			
+			@Override
+			public void error() {
+				if (doAfter != null && doAfter instanceof Action)
+					((Action) doAfter).error();
 			}
 		});
 
@@ -314,26 +328,31 @@ public class Soapbox implements ServerInterface {
 		return matcher.matches();
 	}
 	
-	public byte[] getRWACindex() {
+	public RWACIndex getRWACindex() {
 		return RWACindex;
 	}
 
-	@Override
-	public boolean useRWAC() {
-		return RWACuse;
-	}
-
-	@Override
-	public void setRWACindex(byte[] index) {
-		RWACindex = index;
-	}
+//	@Override
+//	public boolean useRWAC() {
+//		return RWACuse;
+//	}
+//	
+//	@Override
+//	public String getRWACLink() {
+//		return VO.getHttpLink()+"/soapbox-race-core/fileschecker";
+//	}
+//
+//	@Override
+//	public void setRWACindex(byte[] index) {
+//		RWACindex = index;
+//	}
 
 	@Override
 	public void launchGame() throws GameStartException {
 		if (!RWAC.checkBeforeStart()) throw new GameStartException(Main.locale.get("error_game_is_modified"));
 		//ServerRedirrect sr = new ServerRedirrect(Main.account.getServer().getIP(), 8080);
 		Main.account.getServer().setRedirrect(Main.account.getServer().getIP()/*sr.getLocalHost()*/);
-		Main.game = Game.call(Main.account.getToken(), Main.account.getID(), Main.account.getServer().getProtocol().getServerEngine(), Config.GAME_PATH);
+		Main.game = new Game(Main.account.getToken(), Main.account.getID(), Main.account.getServer().getProtocol().getServerEngine(), Config.GAME_PATH);
 		//Main.frame.loadingComplite();
 	}
 

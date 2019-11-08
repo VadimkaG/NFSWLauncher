@@ -9,7 +9,6 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -36,34 +35,40 @@ import ru.vadimka.nfswlauncher.Main;
 import ru.vadimka.nfswlauncher.ValueObjects.RWACFile;
 
 public abstract class RWAC {
-	
-	public static boolean SomeErrors = false;
-	
-	public static void init() {}
-	
-	public static boolean isIndexDownloaded() {return true;}
-	
 	/**
 	 * Проверка файлов
 	 */
-	public static boolean checkBeforeStart() {return true;}
+	public static boolean checkBeforeStart() {
+		// TODO: you code here
+		return true;
+	}
 
-	public static boolean checkFiles(byte[] xml) {return true;}
+	public static boolean checkFiles(byte[] xml) {
+		return checkFiles(new InputSource(new ByteArrayInputStream(xml)));
+	}
 	/**
 	 * Проверка файлов
 	 * @param is - Входящий стрим
 	 */
-	public static boolean checkFiles(InputSource is) {return true;}
+	public static boolean checkFiles(InputSource is) {
+		// TODO: you code here
+		return true;
+	}
 	/**
 	 * Проверить файл на хэш
 	 * @param file - файл, который нужно проверить
 	 * @param CheckSums - список хэш
 	 */
-	public static boolean checkFile(File file, List<String> CheckSums) {return true;}
+	public static boolean checkFile(File file, List<String> CheckSums) {
+		// TODO: you code here
+		return true;
+	}
 	/**
 	 * Добавить файл в индекс сохраненных файлов
 	 * @param file
 	 * @param CheckSumm
 	 */
-	public static void addBackubFileToIndex(String file, String CheckSumm) {}
+	public static void addBackubFileToIndex(String file, String CheckSumm) {
+		// TODO: you code here
+	}
 }

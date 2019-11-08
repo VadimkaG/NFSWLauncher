@@ -27,15 +27,33 @@ public abstract class Log {
 	 * @param stacktrace - стэк пуей
 	 * @return
 	 */
+	public static String stackTraceToString(Throwable th) {
+		String str = "";
+		str = stackTraceToString(th.getStackTrace());
+		Throwable parent = th;
+		String tab = "\t";
+		while ((parent = parent.getCause()) != null) {
+			str +=	"\n"+tab
+					+"Причина: "+parent.toString()+"\n"
+					+tab+"Описание: "+parent.getMessage()+"\n"
+					+tab+"Использованный путь: \n";
+			tab += "\t";
+			str += stackTraceToString(parent.getStackTrace(),tab);
+		}
+		return str;
+	}
 	public static String stackTraceToString(StackTraceElement[] stacktrace) {
-		String str = "\t";
+		return stackTraceToString(stacktrace,"\t");
+	}
+	public static String stackTraceToString(StackTraceElement[] stacktrace,String tab) {
+		String str = tab;
 		for (StackTraceElement element : stacktrace) {
 			str += element.getClassName() + "."+element.getMethodName() + "(";
 			if (element.getFileName() != null)
 				str += element.getFileName()+":"+element.getLineNumber() + ")";
 			else
 				str += "Unknown Source)";
-			str += "\n\t";
+			str += "\n"+tab;
 		}
 		return str;
 	}

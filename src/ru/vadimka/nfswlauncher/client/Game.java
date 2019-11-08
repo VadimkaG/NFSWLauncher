@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.logging.Level;
 
 import ru.vadimka.nfswlauncher.AuthException;
 import ru.vadimka.nfswlauncher.Config;
@@ -20,23 +21,21 @@ public class Game {
 	
 	private Process game;
 	
-	private static final byte[] CHECKSUM_LaunchFile = {};
+	private static final byte[] CHECKSUM_LaunchFile = {
+			(byte) 0x4c, (byte) 0x32, (byte) 0x93, (byte) 0x6d,
+			(byte) 0xeb, (byte) 0xff, (byte) 0xcb, (byte) 0xdc,
+			(byte) 0x20, (byte) 0x8d, (byte) 0x39, (byte) 0x50,
+			(byte) 0x2b, (byte) 0x79, (byte) 0xa5, (byte) 0x6f
+	};
 	
-	private static Game INSTANCE = null;
-	
-	public static Game call(String token, String userId, String serverEnginePath, String gamePath) {
-		if (INSTANCE == null) INSTANCE = new Game(token, userId, serverEnginePath, gamePath);
-		return INSTANCE;
-	}
-	
-	private Game(String token, String userId, String serverEnginePath, String gamePath) {
+	public Game(String token, String userId, String serverEnginePath, String gamePath) {
 		try {
-			Main.frame.loading();
+			if (Main.frame != null)
+				Main.frame.loading();
 			ProcessBuilder builder;
 			if (Config.WINE_PATH.equalsIgnoreCase("")) {
 				builder = new ProcessBuilder(gamePath, Main.getSystemLanguage().toUpperCase(), serverEnginePath, token, userId);
-			}
-			else {
+			} else {
 				builder = new ProcessBuilder(Config.WINE_PATH, gamePath, Main.getSystemLanguage(), serverEnginePath, token, userId);
 				Map<String,String> env = builder.environment();
 				env.put("WINEPREFIX", Config.WINE_PREFIX);
@@ -48,19 +47,21 @@ public class Game {
 			//Main.frame.setVisible(false);
 			if (Config.BACKGROUND_WORCK_DENY) Main.shutdown(0);
 			else Main.destroyGraphic();
-			waitForGameStoped.start();
+			new Thread(waitForGameStoped).start();
 		} catch (Exception e) {
-			Main.createGraphic();
-			Log.getLogger().warning("Не возможно прочитать файл запуска. Закрытие лаунчера.");
-			Main.frame.errorDialog("Во время запуска игры произошла ошибка\nПопробуйте перекачать игру", "Не удалось запустить игру");
-			//Main.frame.setVisible(true);
-			Main.frame.loadingComplite();
+			//Main.createGraphic();
+			Log.getLogger().log(Level.WARNING,"Не возможно прочитать файл запуска. Закрытие лаунчера.",e);
+			if (Main.frame != null) {
+				Main.frame.errorDialog("Во время запуска игры произошла ошибка\nПопробуйте перекачать игру", "Не удалось запустить игру");
+				//Main.frame.setVisible(true);
+				Main.frame.loadingComplite();
+			}
 		}
 	}
 	/**
 	 * Ожидает пока игра завершится, чтобы продолжить работу лаунчера
 	 */
-	private Thread waitForGameStoped = new Thread(new Runnable() {
+	private Runnable waitForGameStoped = new Runnable() {
 		public void run() {
 			int exitCode;
 			try {
@@ -95,7 +96,7 @@ public class Game {
 				Main.shutdown(0);
 			}
 		}
-	});
+	};
 	/**
 	 * Является ли файл, запускным файлом игры (nfsw.exe)
 	 * @param path - Путь к файлу
@@ -125,5 +126,9 @@ public class Game {
 	});
 	public static File getConfigFile() {
 		return new File(Main.getConfigDir()+File.separator+"Settings"+File.separator+"UserSettings.xml");
+	}
+	public boolean isAlive() {
+		if (game != null && game.isAlive()) return true;
+		else return false;
 	}
 }

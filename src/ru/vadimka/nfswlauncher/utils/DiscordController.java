@@ -19,7 +19,7 @@ public abstract class DiscordController {
 		if (!Config.DISCORD_ALLOW) return;
 		lib = DiscordRPC.INSTANCE;
 		presence = new DiscordRichPresence();
-		String applicationId = "";
+		String applicationId = "569591780270669855";
 		DiscordEventHandlers handlers = new DiscordEventHandlers();
 		is_started = true;
 		

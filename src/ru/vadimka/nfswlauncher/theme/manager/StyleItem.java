@@ -1,7 +1,7 @@
 package ru.vadimka.nfswlauncher.theme.manager;
 
 import java.awt.Color;
-import java.awt.image.BufferedImage;
+import java.io.InputStream;
 
 public class StyleItem {
 	private Color COLOR_BACKGROUND;
@@ -10,10 +10,10 @@ public class StyleItem {
 	private Color COLOR_TEXT_FOCUS;
 	private Color COLOR_TEXT_DISABLED;
 	
-	private BufferedImage BACKGROUND_DEFAULT;
-	private BufferedImage BACKGROUND_PRESSED;
-	private BufferedImage BACKGROUND_FOCUS;
-	private BufferedImage BACKGROUND_DISABLED;
+	private InputStream BACKGROUND_DEFAULT;
+	private InputStream BACKGROUND_PRESSED;
+	private InputStream BACKGROUND_FOCUS;
+	private InputStream BACKGROUND_DISABLED;
 	
 	private boolean TEXT_HIDDEN;
 	private boolean TEXT_CENTRED;
@@ -67,28 +67,28 @@ public class StyleItem {
 	 * Получить стандартный фон
 	 * @return Картинка
 	 */
-	public BufferedImage getBackgroundDefault() {
+	public InputStream getBackgroundDefault() {
 		return BACKGROUND_DEFAULT;
 	}
 	/**
 	 * Получить фон, когда кнопка нажата
 	 * @return Картинка
 	 */
-	public BufferedImage getBackgroundPressed() {
+	public InputStream getBackgroundPressed() {
 		return BACKGROUND_PRESSED;
 	}
 	/**
 	 * Получить фон, когда кноппка под фокусом курсора
 	 * @return Картинка
 	 */
-	public BufferedImage getBackgroundFocus() {
+	public InputStream getBackgroundFocus() {
 		return BACKGROUND_FOCUS;
 	}
 	/**
 	 * Получить фон, когда кнопка выключена
 	 * @return Картинка
 	 */
-	public BufferedImage getBackgroundDisabled() {
+	public InputStream getBackgroundDisabled() {
 		return BACKGROUND_DISABLED;
 	}
 	/**
@@ -97,7 +97,7 @@ public class StyleItem {
 	 * @param Ipressed - Кнопка нажата
 	 * @param Ifocus - На кнеопку наведен курсор
 	 */
-	public StyleItem setBackground(BufferedImage Idefault, BufferedImage Ipressed, BufferedImage Ifocus) {
+	public StyleItem setBackground(InputStream Idefault, InputStream Ipressed, InputStream Ifocus) {
 		BACKGROUND_DEFAULT = Idefault;
 		BACKGROUND_PRESSED = Ipressed;
 		BACKGROUND_FOCUS = Ifocus;
@@ -110,7 +110,7 @@ public class StyleItem {
 	 * @param Ifocus - На кнеопку наведен курсор
 	 * @param Idisabled - Выключенное состояние кнопки
 	 */
-	public StyleItem setBackground(BufferedImage Idefault, BufferedImage Ipressed, BufferedImage Ifocus, BufferedImage Idisabled) {
+	public StyleItem setBackground(InputStream Idefault, InputStream Ipressed, InputStream Ifocus, InputStream Idisabled) {
 		BACKGROUND_DISABLED = Idisabled;
 		return setBackground(Idefault, Ipressed, Ifocus);
 	}

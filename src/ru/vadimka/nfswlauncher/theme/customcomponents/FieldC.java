@@ -5,6 +5,7 @@ import java.awt.event.FocusListener;
 
 import javax.swing.JTextField;
 
+import ru.vadimka.nfswlauncher.Log;
 import ru.vadimka.nfswlauncher.theme.manager.StyleItem;
 
 public class FieldC extends JTextField implements FocusListener {
@@ -21,9 +22,12 @@ public class FieldC extends JTextField implements FocusListener {
 		super();
 	}
 	
-	public FieldC(int i,String str) {
-		super(i);
-		//alias = str;
+	public FieldC(String hint) {
+		super();
+		HINT = hint;
+		super.setText(HINT);
+		showingHint = true;
+		addFocusListener(this);
 	}
 	public FieldC(int i,String str, String hint) {
 		super(i);
@@ -54,6 +58,7 @@ public class FieldC extends JTextField implements FocusListener {
 		if(this.getText().isEmpty()) {
 			super.setText(value);
 			showingHint = false;
+			Log.getLogger().info("123");
 		}
 	}
 	@Override
@@ -61,7 +66,13 @@ public class FieldC extends JTextField implements FocusListener {
 		if(this.getText().isEmpty()) {
 			super.setText(HINT);
 			showingHint = true;
+			Log.getLogger().info("345");
 		}
+	}
+	@Override
+	public void setText(String t) {
+		if (t != "") showingHint = false;
+		super.setText(t);
 	}
 	@Override
 	public String getText() {

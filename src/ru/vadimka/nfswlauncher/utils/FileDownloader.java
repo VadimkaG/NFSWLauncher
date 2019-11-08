@@ -11,11 +11,10 @@ import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.logging.Level;
 
+import ru.vadimka.nfswlauncher.Decode;
 import ru.vadimka.nfswlauncher.Log;
 import ru.vadimka.nfswlauncher.Main;
-import ru.vadimka.racingworld.encoder.Decode;
 
 public class FileDownloader {
 	
@@ -25,7 +24,7 @@ public class FileDownloader {
 		this.url = new URL(url);
 	}
 	
-	public void download(OutputStream os) {
+	public void download(OutputStream os) throws IOException {
 		InputStream is = null;
 		try {
 			URLConnection c = url.openConnection();
@@ -43,7 +42,6 @@ public class FileDownloader {
 			
 			is.close();
 			os.close();
-			
 		} catch (IOException e) {
 			try {
 				if (is != null)
@@ -51,6 +49,7 @@ public class FileDownloader {
 				if (os != null)
 					os.close();
 			} catch (IOException e1) {}
+			throw e;
 		}
 		
 	}
@@ -89,7 +88,7 @@ public class FileDownloader {
 	 * @param source - Файл исходник
 	 * @param dest - Новый файл
 	 */
-	public static void copyFile(File source, File dest) {
+	public static void copyFile(File source, File dest) throws FileNotFoundException, IOException {
 		if (dest.exists()) return;
 		if (!dest.getParentFile().exists() && !dest.getParentFile().mkdirs()) {
 			Log.getLogger().warning("[copyFile] Не удалось создать путь для "+dest.getAbsolutePath());
@@ -107,9 +106,9 @@ public class FileDownloader {
 				os.write(buffer, 0, length);
 			}
 		} catch (FileNotFoundException e) {
-			Log.getLogger().warning("[copyFile] Файл не найден "+source.getAbsolutePath());
+			throw e;
 		} catch (IOException e) {
-			Log.getLogger().log(Level.WARNING,"Ошибка копировании файла "+source.getAbsolutePath(),e);
+			throw e;
 		} finally {
 			try {
 				is.close();

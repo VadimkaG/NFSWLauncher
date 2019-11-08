@@ -2,6 +2,7 @@ package ru.vadimka.nfswlauncher.protocol;
 
 import ru.vadimka.nfswlauncher.AuthException;
 import ru.vadimka.nfswlauncher.ValueObjects.Account;
+import ru.vadimka.nfswlauncher.ValueObjects.RWACIndex;
 import ru.vadimka.nfswlauncher.client.GameStartException;
 
 public interface ServerInterface {
@@ -53,17 +54,9 @@ public interface ServerInterface {
 	 */
 	public void ping();
 	/**
-	 * используется ли RWAC
-	 */
-	public boolean useRWAC();
-	/**
 	 * Получить индекс-xml RWAC
 	 */
-	public byte[] getRWACindex();
-	/**
-	 * Установить индекс-xml RWAC
-	 */
-	public void setRWACindex(byte[] index);
+	public RWACIndex getRWACindex();
 	/**
 	 * Запустить игру
 	 * @throws Exception - Ошибка при запуске игры

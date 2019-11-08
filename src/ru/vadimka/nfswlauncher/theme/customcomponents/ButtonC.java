@@ -3,14 +3,17 @@ package ru.vadimka.nfswlauncher.theme.customcomponents;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.Image;
 import java.awt.RenderingHints;
-import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
-import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.util.logging.Level;
 
+import javax.imageio.ImageIO;
 import javax.swing.JButton;
 
+import ru.vadimka.nfswlauncher.Log;
 import ru.vadimka.nfswlauncher.theme.manager.StyleItem;
 
 public class ButtonC extends JButton implements MouseListener, Stylisable {
@@ -20,10 +23,10 @@ public class ButtonC extends JButton implements MouseListener, Stylisable {
 	private Boolean pressed = false;
 	private Boolean entered = false;
 	
-	private BufferedImage Idefault = null;
-	private BufferedImage Ifocus = null;
-	private BufferedImage Ipressed = null;
-	private BufferedImage Idisabled = null;
+	private Image Idefault = null;
+	private Image Ifocus = null;
+	private Image Ipressed = null;
+	private Image Idisabled = null;
 	
 	private Color TEXT_COLOR_DEFAULT;
 	private Color TEXT_COLOR_PRESSED;
@@ -44,12 +47,11 @@ public class ButtonC extends JButton implements MouseListener, Stylisable {
 		addMouseListener(this);
 	}
 	
-	public ButtonC(String text, ActionListener act) {
+	/*public ButtonC(String text, ActionListener act) {
 		super(text);
 		addMouseListener(this);
 		addActionListener(act);
-	}
-	
+	}*/
 	
 	public void setStyle(StyleItem style) {
 		if (style.getBackground() != null)
@@ -61,10 +63,20 @@ public class ButtonC extends JButton implements MouseListener, Stylisable {
 		TEXT_COLOR_FOCUS = style.getColorTextFocus();
 		TEXT_COLOR_DISABLED = style.getColorTextDisabled();
 		HIDE_TEXT = style.textHidden();
-		Idefault = style.getBackgroundDefault();
-		Ifocus = style.getBackgroundFocus();
-		Ipressed = style.getBackgroundPressed();
-		Idisabled = style.getBackgroundDisabled();
+		if (getWidth() != 0 && getHeight() != 0) {
+			try {
+				if (style.getBackgroundDefault() != null)
+				Idefault = ImageC.subsampleImage(ImageIO.createImageInputStream(style.getBackgroundDefault()), getWidth(), getHeight());
+				if (style.getBackgroundFocus() != null)
+				Ifocus = ImageC.subsampleImage(ImageIO.createImageInputStream(style.getBackgroundFocus()), getWidth(), getHeight());
+				if (style.getBackgroundPressed() != null)
+				Ipressed = ImageC.subsampleImage(ImageIO.createImageInputStream(style.getBackgroundPressed()), getWidth(), getHeight());
+				if (style.getBackgroundDisabled() != null)
+				Idisabled = ImageC.subsampleImage(ImageIO.createImageInputStream(style.getBackgroundDisabled()), getWidth(), getHeight());
+			} catch (IOException e) {
+				Log.getLogger().log(Level.WARNING,"Не удалось загрузить картинку",e);
+			}
+		}
 		if (Idefault != null && Ifocus != null && Ipressed != null) {
 			setOpaque(false);
 			setBorderPainted(false);
@@ -79,6 +91,8 @@ public class ButtonC extends JButton implements MouseListener, Stylisable {
 		}
 		Graphics2D gt = (Graphics2D) g;
 		gt.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+		gt.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+		gt.setRenderingHint(RenderingHints.KEY_DITHERING, RenderingHints.VALUE_DITHER_ENABLE);
 		int xText = getWidth()/2-g.getFontMetrics().stringWidth(getText())/2;
 		int yText = getHeight()/2+gt.getFont().getSize()/2;
 		if (!isEnabled() && Idisabled != null) {

@@ -1,6 +1,7 @@
 package ru.vadimka.nfswlauncher.theme;
 
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Desktop;
 import java.awt.Dimension;
 import java.awt.Font;
@@ -12,7 +13,6 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
-import java.awt.image.BufferedImage;
 import java.io.File;
 import java.net.URI;
 import java.util.List;
@@ -29,7 +29,6 @@ import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JPasswordField;
 import javax.swing.JScrollPane;
 import javax.swing.JSlider;
 import javax.swing.JTextField;
@@ -43,8 +42,6 @@ import javax.swing.event.ListSelectionListener;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
-
-import org.apache.commons.codec.digest.DigestUtils;
 
 import ru.vadimka.nfswlauncher.AuthException;
 import ru.vadimka.nfswlauncher.Config;
@@ -60,9 +57,11 @@ import ru.vadimka.nfswlauncher.ValueObjects.ServerVO;
 import ru.vadimka.nfswlauncher.theme.GUIResourseLoader.Loader;
 import ru.vadimka.nfswlauncher.theme.customcomponents.ButtonC;
 import ru.vadimka.nfswlauncher.theme.customcomponents.DynBgC;
+import ru.vadimka.nfswlauncher.theme.customcomponents.FieldC;
 import ru.vadimka.nfswlauncher.theme.customcomponents.ImageC;
-import ru.vadimka.nfswlauncher.theme.manager.StyleItem;
+import ru.vadimka.nfswlauncher.theme.customcomponents.PassFieldC;
 import ru.vadimka.nfswlauncher.utils.DiscordController;
+import ru.vadimka.nfswlauncher.utils.HTTPRequest.Action;
 
 public class GUI extends JFrame implements GraphModule {
 
@@ -112,7 +111,7 @@ public class GUI extends JFrame implements GraphModule {
 	private JLabel login_lblServerTitle;
 	private JLabel login_lblPing;
 	private JTextField lofinField;
-	private JPasswordField passField;
+	private PassFieldC passField;
 	
 	private JList<ServerVO> serverLV;
 	private Vector<ServerVO> serverList;
@@ -138,7 +137,7 @@ public class GUI extends JFrame implements GraphModule {
 		setContentPane(window);
 		window.setLayout(null);
 		addWindowListener(new GUIWindowListener());
-		GUIMouseListener MouseListener = new GUIMouseListener(this);
+		GUIMouseMovement MouseListener = new GUIMouseMovement(this,0,0,800,30);
 		addMouseListener(MouseListener);
 		addMouseMotionListener(MouseListener);
 		KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(new KeyEventDispatcher() {
@@ -146,36 +145,22 @@ public class GUI extends JFrame implements GraphModule {
 			public boolean dispatchKeyEvent(KeyEvent ke) {
 				if (ke.getKeyCode()==KeyEvent.VK_L && ke.isAltDown())
 					Log.showLogWindow();
-				if (ke.getKeyCode()==KeyEvent.VK_ENTER && GraphActions.isAuthed() && loading == false)
-					GraphActions.startGame();
+				if (ke.getKeyCode()==KeyEvent.VK_ENTER && loading == false) {
+					if (GraphActions.isAuthed()) {
+						GraphActions.startGame();
+					} else {
+						login();
+					}
+					
+				}
 				return false;
 			}
 		});
 		
 		ButtonC btnExit = new ButtonC();
-		//*
-		GUIResourseLoader.loadStyleBtnExit(new GUIResourseLoader.Loader<StyleItem>() {
-			@Override
-			public void proc(StyleItem obj) {
-				btnExit.setStyle(obj);
-			}
-			
-		});
-		//*/
-		/*
-		// windowbuilder
-		try {
-			btnExit.setStyle(new StyleItem().setBackground(
-					ImageIO.read(Frame.class.getResourceAsStream("btn_exit.png")), 
-					ImageIO.read(Frame.class.getResourceAsStream("btn_exit_pressed.png")), 
-					ImageIO.read(Frame.class.getResourceAsStream("btn_exit_focus.png"))
-				));
-		} catch (IOException e) {
-			Log.print("Не удалось загрузить иконку выхода");
-		}
-		//*/
 		
 		btnExit.setBounds(775, 5, 20, 20);
+		btnExit.setStyle(GUIResourseLoader.getStyleBtnExit());
 		btnExit.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
@@ -185,27 +170,8 @@ public class GUI extends JFrame implements GraphModule {
 		window.add(btnExit);
 		
 		ButtonC btnHide = new ButtonC();
-		//*
-		GUIResourseLoader.loadStyleBtnHide(new GUIResourseLoader.Loader<StyleItem>() {
-			@Override
-			public void proc(StyleItem obj) {
-				btnHide.setStyle(obj);
-			}
-		});
-		//*/
-		/*
-		// windowbuilder
-		try {
-			btnHide.setStyle(new StyleItem().setBackground(
-					ImageIO.read(Frame.class.getResourceAsStream("btn_hide.png")), 
-					ImageIO.read(Frame.class.getResourceAsStream("btn_hide_pressed.png")), 
-					ImageIO.read(Frame.class.getResourceAsStream("btn_hide_focus.png"))
-				));
-		} catch (IOException e) {
-			Log.print("Не удалось загрузить иконку скрытия окна");
-		}
-		//*/
 		btnHide.setBounds(750, 5, 20, 20);
+		btnHide.setStyle(GUIResourseLoader.getStyleBtnHide());
 		btnHide.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
@@ -216,22 +182,7 @@ public class GUI extends JFrame implements GraphModule {
 		
 		ImageC UpPanel = new ImageC();
 		UpPanel.setBackground(Color.CYAN);
-		//*
-		GUIResourseLoader.loadUpBar(new GUIResourseLoader.Loader<BufferedImage>() {
-			@Override
-			public void proc(BufferedImage obj) {
-				UpPanel.setImage(obj);
-			}
-		});
-		//*/
-		/*
-		//  windowbuilder
-		try {
-			UpPanel.setImage(ImageIO.read(NewTheme.class.getResource("/ru/vadimka/nfswlauncher/theme/status_bar.png")));
-		} catch (IOException e) {
-			Log.print("Не удалось загрузить верхний бар");
-		}
-		//*/
+		UpPanel.setImage(GUIResourseLoader.getUpBarIS(), 800, 30);
 		
 		JLabel lblWindowTitle = new JLabel(Config.WINDOW_TITLE/*+"    v "+Config.VERSION*/);
 		lblWindowTitle.setForeground(Color.WHITE);
@@ -240,26 +191,7 @@ public class GUI extends JFrame implements GraphModule {
 		UpPanel.setBounds(0, 0, 800, 30);
 		window.add(UpPanel);
 		
-		ImageC leftBar = new ImageC();
-		//*
-		GUIResourseLoader.loadLeftBar(new GUIResourseLoader.Loader<BufferedImage>() {
-			@Override
-			public void proc(BufferedImage obj) {
-				leftBar.setImage(obj);
-			}
-		});
-		//*/
-		/*
-		// windowbuilder
-		try {
-			leftBar.setImage(ImageIO.read(NewTheme.class.getResource("/ru/vadimka/nfswlauncher/theme/bar_left.png")));
-		} catch (IOException e) {
-			Log.print("Не удалось загрузить фон левого бара");
-		}
-		//*/
-		
 		btnServers = new ButtonC();
-		window.add(btnServers);
 		btnServers.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				if (!loginPanel.isVisible()) {
@@ -277,23 +209,13 @@ public class GUI extends JFrame implements GraphModule {
 			}
 		});
 		btnServers.setBounds(15, 50, 45, 45);
-		
-		GUIResourseLoader.loadServersBtn(new GUIResourseLoader.Loader<StyleItem>() {
-			@Override
-			public void proc(StyleItem obj) {
-				btnServers.setStyle(obj);
-			}
-		});
+		btnServers.setStyle(GUIResourseLoader.getStyleBtnServers());
+		window.add(btnServers);
 		
 		btnSettings = new ButtonC();
-		GUIResourseLoader.loadSettingsBtn(new GUIResourseLoader.Loader<StyleItem>() {
-			@Override
-			public void proc(StyleItem obj) {
-				btnSettings.setStyle(obj);
-			}
-		});
-		window.add(btnSettings);
 		btnSettings.setBounds(15, 110, 45, 45);
+		btnSettings.setStyle(GUIResourseLoader.getStyleBtnSettings());
+		window.add(btnSettings);
 		
 		btnSettings.addActionListener(new ActionListener() {
 			@Override
@@ -305,42 +227,20 @@ public class GUI extends JFrame implements GraphModule {
 		});
 		
 		btnInfo = new ButtonC();
-		GUIResourseLoader.loadInfoBtn(new GUIResourseLoader.Loader<StyleItem>() {
-			@Override
-			public void proc(StyleItem obj) {
-				btnInfo.setStyle(obj);
-			}
-		});
-		window.add(btnInfo);
 		btnInfo.setBounds(15, 170, 45, 45);
+		btnInfo.setStyle(GUIResourseLoader.getStyleBtnInfo());
+		window.add(btnInfo);
 		btnInfo.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				new InfoDialog().show();
 			}
 		});
+		ImageC leftBar = new ImageC(GUIResourseLoader.getLeftBarIS(),75,480);
 		leftBar.setBackground(Color.ORANGE);
 		leftBar.setBounds(0, 30, 75, 480);
 		window.add(leftBar);
 		leftBar.setLayout(null);
-		
-		ImageC aboutBlock = new ImageC();
-		//*
-		GUIResourseLoader.getBlock(new GUIResourseLoader.Loader<BufferedImage>() {
-			@Override
-			public void proc(BufferedImage obj) {
-				aboutBlock.setImage(obj);
-			}
-		});
-		//*/
-		/*
-		// windowbuilder
-		try {
-			aboutBlock.setImage(ImageIO.read(NewTheme.class.getResource("/ru/vadimka/nfswlauncher/theme/block.png")));
-		} catch (IOException e) {
-			Log.print("Не удалось загрузить задний блок");
-		}
-		//*/
 		
 		//*
 		// Окно логина TODO
@@ -351,32 +251,14 @@ public class GUI extends JFrame implements GraphModule {
 		loginPanel.setLayout(null);
 		loginPanel.setOpaque(false);
 		
-		ImageC back = new ImageC();
-		//*
-		GUIResourseLoader.loadTabFirst(new GUIResourseLoader.Loader<Image>() {
-			@Override
-			public void proc(Image obj) {
-				back.setImage(obj);
-			}
-		});
-		//*/
-		/*
-		// windowbuilder
-		try {
-			back.setImage(ImageIO.read(NewTheme.class.getResource("/ru/vadimka/nfswlauncher/theme/tab1.png")));
-		} catch (IOException e) {
-			Log.print("Не удалось загрузить иконку скрытия");
-		}
-		//*/
-		
-		lofinField = new JTextField();
+		lofinField = new FieldC(Main.locale.get("label_login"));
 		lofinField.setBounds(465, 294, 214, 45);
 		lofinField.setEditable(true);
 		lofinField.setEnabled(true);
 		loginPanel.add(lofinField);
 		lofinField.setColumns(10);
 		
-		passField = new JPasswordField();
+		passField = new PassFieldC();
 		passField.setBounds(465, 350, 214, 45);
 		loginPanel.add(passField);
 
@@ -387,43 +269,11 @@ public class GUI extends JFrame implements GraphModule {
 		logBtn.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				if (GraphActions.getCurrentServer() == null) {
-					infoDialog(GraphActions.getLocale().get("choose_server"), GraphActions.getLocale().get("auth_error_title"));
-					return;
-				}
-				loading();
-				@SuppressWarnings("deprecation")
-				String password = DigestUtils.sha1Hex(passField.getText());
-				ServerVO server = GraphActions.getCurrentServer();
-				Account acc = new Account(server, lofinField.getText(), password);
-
-				try {
-					server.getProtocol().login(acc);
-					GraphActions.login(acc);
-					setLogin(true);
-					loadingComplite();
-				} catch (NullPointerException exn) {
-					errorDialog(GraphActions.getLocale().get("error_inner"), GraphActions.getLocale().get("auth_error_title"));
-					Log.getLogger().warning("Внутренняя ошибка авторизации, не удалось получить данные.");
-					//Log.getLogger().warning(exn.getStackTrace());
-					//Main.frame.changeWindow(Frame.WINDOW_LOGIN);
-					setLogin(false);
-					loadingComplite();
-				} catch (AuthException ex) {
-					errorDialog(Main.locale.get("auth_error").replaceFirst("%%RESPONSE%%", ex.getMessage()), GraphActions.getLocale().get("auth_error_title"));
-					Log.getLogger().warning("Ошибка логина. Описание: "+ex.getMessage());
-					setLogin(false);
-					loadingComplite();
-				}
+				login();
 			}
 		});
-
-		GUIResourseLoader.loadBtn(new GUIResourseLoader.Loader<StyleItem>() {
-			@Override
-			public void proc(StyleItem obj) {
-				logBtn.setStyle(obj);
-			}
-		});
+		
+		logBtn.setStyle(GUIResourseLoader.getStyleBtn());
 		loginPanel.add(logBtn);
 		
 		ButtonC regBtn = new ButtonC(GraphActions.getLocale().get("btn_reg_submit"));
@@ -436,8 +286,7 @@ public class GUI extends JFrame implements GraphModule {
 					return;
 				}
 				loading();
-				@SuppressWarnings("deprecation")
-				String password = DigestUtils.sha1Hex(passField.getText());
+				String password = passField.getPasswordSha1();
 				new Thread(() -> {
 					try {
 						GraphActions.getCurrentServer().getProtocol().register(lofinField.getText(), password);
@@ -451,13 +300,8 @@ public class GUI extends JFrame implements GraphModule {
 				}).start();
 			}
 		});
-
-		GUIResourseLoader.loadBtn(new GUIResourseLoader.Loader<StyleItem>() {
-			@Override
-			public void proc(StyleItem obj) {
-				regBtn.setStyle(obj);
-			}
-		});
+		
+		regBtn.setStyle(GUIResourseLoader.getStyleBtn());
 		loginPanel.add(regBtn);
 		
 		ButtonC forgotBtn = new ButtonC(GraphActions.getLocale().get("btn_forgot_password"));
@@ -476,13 +320,8 @@ public class GUI extends JFrame implements GraphModule {
 				}
 			}
 		});
-
-		GUIResourseLoader.loadBtn(new GUIResourseLoader.Loader<StyleItem>() {
-			@Override
-			public void proc(StyleItem obj) {
-				forgotBtn.setStyle(obj);
-			}
-		});
+		
+		forgotBtn.setStyle(GUIResourseLoader.getStyleBtn());
 		loginPanel.add(forgotBtn);
 		
 		login_lblServerTitle = new JLabel("RacingWorld");
@@ -525,14 +364,24 @@ public class GUI extends JFrame implements GraphModule {
 				if (GraphActions.getCurrentServer() != null && GraphActions.getCurrentServer().getIP().equalsIgnoreCase(serverLV.getSelectedValue().getIP())) return;
 				//Log.print("Выбран сервер "+serverLV.getSelectedValue().getName());
 				//loading();
+				serverLV.setEnabled(false);
 				new Thread(() -> {
 					ServerVO server = serverLV.getSelectedValue();
-					server.getProtocol().getResponse(new Runnable() {
+					server.getProtocol().getResponse(new Action() {
 						@Override
 						public void run() {
 							SwingUtilities.invokeLater(() -> {
+								try {
+									Thread.sleep(100);
+								} catch (InterruptedException e) {}
 								updateLoginWindow();
+								serverLV.setEnabled(true);
 							});
+						}
+						@Override
+						public void error() {
+							updateLoginWindow();
+							serverLV.setEnabled(true);
 						}
 					});
 					GraphActions.setServer(server);
@@ -542,6 +391,7 @@ public class GUI extends JFrame implements GraphModule {
 		JScrollPane serverPane = new JScrollPane(serverLV);
 		serverPane.setBounds(465, 182, 214, 101);
 		loginPanel.add(serverPane);
+		ImageC back = new ImageC(GUIResourseLoader.getTabFirstIS(),670,430);
 		back.setBounds(100, 55, 670, 430);
 		loginPanel.add(back);
 		
@@ -601,12 +451,7 @@ public class GUI extends JFrame implements GraphModule {
 			}
 		});
 		btnSite.setBounds(234, 375, 72, 61);
-		GUIResourseLoader.loadSiteBtn(new Loader<StyleItem>() {
-			@Override
-			public void proc(StyleItem obj) {
-				btnSite.setStyle(obj);
-			}
-		});
+		btnSite.setStyle(GUIResourseLoader.getStyleBtnSite());
 		mainPanel.add(btnSite);
 		
 		final ButtonC btnDiscord = new ButtonC("discord");
@@ -623,13 +468,8 @@ public class GUI extends JFrame implements GraphModule {
 				}
 			}
 		});
-		GUIResourseLoader.loadDiscordBtn(new GUIResourseLoader.Loader<StyleItem>() {
-			@Override
-			public void proc(StyleItem obj) {
-				btnDiscord.setStyle(obj);
-			}
-		});
 		btnDiscord.setBounds(152, 375, 72, 61);
+		btnDiscord.setStyle(GUIResourseLoader.getStyleBtnDiscord());
 		mainPanel.add(btnDiscord);
 		
 		btnStart = new ButtonC(GraphActions.getLocale().get("btn_launch_game"));
@@ -640,17 +480,13 @@ public class GUI extends JFrame implements GraphModule {
 			}
 		});
 		btnStart.setBounds(532, 376, 180, 60);
-		GUIResourseLoader.loadBtn(new GUIResourseLoader.Loader<StyleItem>() {
-			@Override
-			public void proc(StyleItem obj) {
-				btnStart.setStyle(obj);
-			}
-		});
+		btnStart.setStyle(GUIResourseLoader.getStyleBtn());
 		mainPanel.add(btnStart);
+		ImageC aboutBlock = new ImageC(GUIResourseLoader.getBlockIS(),600,400);
 		aboutBlock.setBackground(Color.CYAN);
 		aboutBlock.setBounds(132, 56, 600, 400);
-		mainPanel.add(aboutBlock);
 		aboutBlock.setLayout(null);
+		mainPanel.add(aboutBlock);
 		//*/
 		
 		
@@ -662,24 +498,6 @@ public class GUI extends JFrame implements GraphModule {
 		settingsPanel.setLayout(null);
 		settingsPanel.setOpaque(false);
 		window.add(settingsPanel);
-		
-		ImageC sback = new ImageC();
-		//*
-		GUIResourseLoader.loadTabFirst(new GUIResourseLoader.Loader<Image>() {
-			@Override
-			public void proc(Image obj) {
-				sback.setImage(obj);
-			}
-		});
-		//*/
-		/*
-		// windowbuilder
-		try {
-			sback.setImage(ImageIO.read(NewTheme.class.getResource("/ru/vadimka/nfswlauncher/theme/tab1.png")));
-		} catch (IOException e) {
-			Log.print("Не удалось загрузить иконку вкладки");
-		}
-		//*/
 		
 		JLabel lblSettings = new JLabel(GraphActions.getLocale().get("settings_title"));
 		lblSettings.setFont(new Font("Tahoma", Font.PLAIN, 15));
@@ -781,7 +599,7 @@ public class GUI extends JFrame implements GraphModule {
 		JCheckBox smoothSoundField = new JCheckBox(GraphActions.getLocale().get("msg_client_audioquality"));
 		smoothSoundField.setForeground(Color.WHITE);
 		smoothSoundField.setOpaque(false);
-		smoothSoundField.setBounds(152, 257, 189, 23);
+		smoothSoundField.setBounds(152, 257, 250, 23);
 		smoothSoundField.setSelected(cset.getAudioquality());
 		settingsPanel.add(smoothSoundField);
 		
@@ -823,24 +641,31 @@ public class GUI extends JFrame implements GraphModule {
 		
 		JCheckBox checkBox = new JCheckBox("<html><body>"+GraphActions.getLocale().get("msg_background_work_deny")+"</body></html>");
 		checkBox.setForeground(Color.WHITE);
-		checkBox.setBounds(515, 287, 220, 30);
+		checkBox.setBounds(515, 285, 220, 30);
 		checkBox.setOpaque(false);
 		checkBox.setSelected(GraphActions.getBackgroundWork());
 		settingsPanel.add(checkBox);
 		
 		JCheckBox dont_update = new JCheckBox("<html><body>"+GraphActions.getLocale().get("update_check")+"</body></html>");
 		dont_update.setForeground(Color.WHITE);
-		dont_update.setBounds(515, 327, 220, 30);
+		dont_update.setBounds(515, 310, 220, 30);
 		dont_update.setOpaque(false);
 		dont_update.setSelected(GraphActions.getIsUpdateCheck());
 		settingsPanel.add(dont_update);
 		
 		JCheckBox discord_integration = new JCheckBox("<html><body>"+GraphActions.getLocale().get("discord_allow")+"</body></html>");
 		discord_integration.setForeground(Color.WHITE);
-		discord_integration.setBounds(515, 367, 220, 30);
+		discord_integration.setBounds(515, 360, 220, 30);
 		discord_integration.setOpaque(false);
 		discord_integration.setSelected(GraphActions.getDiscordAllow());
 		settingsPanel.add(discord_integration);
+		
+		JCheckBox dynamic_background = new JCheckBox("<html><body>"+GraphActions.getLocale().get("dynamic_background")+"</body></html>");
+		dynamic_background.setForeground(Color.WHITE);
+		dynamic_background.setBounds(515, 335, 220, 30);
+		dynamic_background.setOpaque(false);
+		dynamic_background.setSelected(GraphActions.isDynamicBackground());
+		settingsPanel.add(dynamic_background);
 		
 		ButtonC btnSave = new ButtonC(GraphActions.getLocale().get("btn_client_settings_save"));
 		btnSave.setBounds(568, 437, 189, 39);
@@ -852,12 +677,15 @@ public class GUI extends JFrame implements GraphModule {
 				
 				boolean discord_integration_changed = discord_integration.isSelected() != GraphActions.getDiscordAllow();
 				
+				boolean dybbg_changed = dynamic_background.isSelected() != GraphActions.isDynamicBackground();
+				
 				if (
 						checkBox.isSelected() != GraphActions.getBackgroundWork() ||
 						dont_update.isSelected() != GraphActions.getIsUpdateCheck() ||
-						discord_integration_changed
+						discord_integration_changed ||
+						dybbg_changed
 					)
-					GraphActions.setLauncherSettings(checkBox.isSelected(),dont_update.isSelected(), discord_integration.isSelected());
+					GraphActions.setLauncherSettings(checkBox.isSelected(),dont_update.isSelected(), discord_integration.isSelected(), dynamic_background.isSelected());
 				
 				if (discord_integration_changed) {
 					if (discord_integration.isSelected()) {
@@ -890,15 +718,19 @@ public class GUI extends JFrame implements GraphModule {
 				// Записываем настройки
 				if (Main.getPlatform().equalsIgnoreCase("Windows"))
 					GraphActions.setGameSettings(cset);
+				
+				if (dybbg_changed) {
+					Main.restart();
+					return;
+				}
+				
+				// Закрываем настройки
+				loading();
+				loadingComplite();
 			}
 		});
 
-		GUIResourseLoader.loadBtn(new GUIResourseLoader.Loader<StyleItem>() {
-			@Override
-			public void proc(StyleItem obj) {
-				btnSave.setStyle(obj);
-			}
-		});
+		btnSave.setStyle(GUIResourseLoader.getStyleBtn());
 		settingsPanel.add(btnSave);
 		
 		ButtonC btnCancel = new ButtonC(GraphActions.getLocale().get("btn_back"));
@@ -912,74 +744,25 @@ public class GUI extends JFrame implements GraphModule {
 		});
 
 
-		GUIResourseLoader.loadBtn(new GUIResourseLoader.Loader<StyleItem>() {
-			@Override
-			public void proc(StyleItem obj) {
-				btnCancel.setStyle(obj);
-			}
-		});
+		btnCancel.setStyle(GUIResourseLoader.getStyleBtn());
 		settingsPanel.add(btnCancel);
+		ImageC sback = new ImageC(GUIResourseLoader.getTabFirstIS(),670,430);
 		sback.setBounds(100, 55, 670, 430);
 		settingsPanel.add(sback);
 		//*/
 		
-		ImageC backgroundPanel = new ImageC();
-		//*
-		GUIResourseLoader.loadBackground(new GUIResourseLoader.Loader<BufferedImage>() {
-			@Override
-			public void proc(BufferedImage obj) {
-				backgroundPanel.setImage(obj);
-			}
-		});
-		//*/
-		/*
-		// windowbuilder
-		try {
-			backgroundPanel.setImage(ImageIO.read(NewTheme.class.getResource("/ru/vadimka/nfswlauncher/theme/background.png")));
-		} catch (IOException e) {
-			Log.print("Не удалось загрузить фон");
-		}
-		//*/
+		Component backgroundMapPanel;
 		
-		DynBgC backgroundMapPanel = new DynBgC();
-		//*
-		GUIResourseLoader.loadMap(new GUIResourseLoader.Loader<BufferedImage>() {
-			@Override
-			public void proc(BufferedImage obj) {
-				backgroundMapPanel.setImage(obj);
-				backgroundMapPanel.start();
-			}
-		});
-		//*/
-		/*
-		// windowbuilder
-		try {
-			backgroundMapPanel.setImage(ImageIO.read(NewTheme.class.getResource("/ru/vadimka/nfswlauncher/theme/worldmap.png")));
-			backgroundMapPanel.start();
-		} catch (IOException e) {
-			Log.print("Не удалось загрузить карту");
-		}
-		//*/
+		ImageC backgroundPanel = new ImageC(GUIResourseLoader.getBackgroundIS(),getWidth(),getHeight());
+		
+		if (GraphActions.isDynamicBackground())
+			backgroundMapPanel = new DynBgC(GUIResourseLoader.getMapIS(),2047,1503);
+		else
+			backgroundMapPanel = new ImageC(GUIResourseLoader.getMapIS(),725,480);
 		backgroundMapPanel.setBounds(75, 30, 725, 480);
 		window.add(backgroundMapPanel);
 		backgroundPanel.setBounds(0, 0, getWidth(), getHeight());
 		window.add(backgroundPanel);
-		//*
-		GUIResourseLoader.loadBackground(new GUIResourseLoader.Loader<BufferedImage>() {
-			@Override
-			public void proc(BufferedImage obj) {
-				backgroundPanel.setImage(obj);
-			}
-		});
-		//*/
-		/*
-		// windowbuilder
-		try {
-			backgroundPanel.setImage(ImageIO.read(NewTheme.class.getResource("/ru/vadimka/nfswlauncher/theme/background.png")));
-		} catch (IOException e) {
-			Log.print("Не удалось загрузить фон");
-		}
-		//*/
 		
 		//*
 		GUIResourseLoader.loadIcon(new Loader<Image>() {
@@ -988,15 +771,6 @@ public class GUI extends JFrame implements GraphModule {
 				setIconImage(obj);
 			}
 		});
-		//*/
-		/*
-		// windowbuilder
-		try {
-			setIconImage(Toolkit.getDefaultToolkit().getImage(NewTheme.class.getResource("/ru/vadimka/nfswlauncher/theme/icon.png")));
-		} catch (Exception ex) {
-			Log.print("Не возможно загрузить иконку");
-		}
-		//*/
 		
 		loading();
 	}
@@ -1063,16 +837,10 @@ public class GUI extends JFrame implements GraphModule {
 				public void run() {
 					List<ServerVO> servers = GraphActions.getServerList();
 					
-					if (servers == null) {
-						boolean isTry = true;
-						isTry = questionDialog("Ошибка при попытки проверки серверов\nПопробывать снова?", "Ошибка");
-						while (isTry) {
-							servers = GraphActions.getServerList();
-							if (servers == null)
-								isTry = questionDialog("Ошибка при попытки проверки серверов\nПопробывать снова?", "Ошибка");
-							else
-								isTry = false;
-						}
+					boolean isTry = true;
+					while (servers.isEmpty() && isTry == true) {
+						isTry = questionDialog(Main.locale.get("servers_empty"), Main.locale.get("servers_empty_title"));
+						if (isTry == true) servers = GraphActions.getServerList();
 					}
 					
 					updateServers(servers);
@@ -1080,6 +848,7 @@ public class GUI extends JFrame implements GraphModule {
 					mainPanel.setVisible(false);
 					loginPanel.setVisible(true);
 					
+					serverLV.setEnabled(true);
 					btnStart.setEnabled(true);
 					btnServers.setEnabled(true);
 					btnSettings.setEnabled(true);
@@ -1093,7 +862,11 @@ public class GUI extends JFrame implements GraphModule {
 	 * Запустить цикловой пинг сервера
 	 */
 	public void startPinging() {
-		if (CHECKER == null && GraphActions.getCurrentServer() != null) {
+		if (CHECKER != null) {
+			CHECKER.cancel();
+			CHECKER = null;
+		}
+		if (GraphActions.getCurrentServer() != null) {
 			CHECKER = new Timer();
 			CHECKER.schedule(new TimerTask() {
 				@Override
@@ -1101,7 +874,7 @@ public class GUI extends JFrame implements GraphModule {
 					GraphActions.getCurrentServer().getProtocol().ping();
 					updateStats();
 				}
-			}, 1000, 1000);
+			}, 10, 3000);
 		}
 	}
 	/**
@@ -1228,6 +1001,35 @@ public class GUI extends JFrame implements GraphModule {
 			lblServerTitle.setText(GraphActions.getLocale().get("loading_files"));
 		} else {
 			lblServerTitle.setText(GraphActions.getLocale().get("loading"));
+		}
+	}
+	private void login() {
+		if (GraphActions.getCurrentServer() == null) {
+			infoDialog(GraphActions.getLocale().get("choose_server"), GraphActions.getLocale().get("auth_error_title"));
+			return;
+		}
+		loading();
+		String password = passField.getPasswordSha1();
+		ServerVO server = GraphActions.getCurrentServer();
+		Account acc = new Account(server, lofinField.getText(), password);
+
+		try {
+			server.getProtocol().login(acc);
+			GraphActions.login(acc);
+			setLogin(true);
+			loadingComplite();
+		} catch (NullPointerException exn) {
+			errorDialog(GraphActions.getLocale().get("error_inner"), GraphActions.getLocale().get("auth_error_title"));
+			Log.getLogger().warning("Внутренняя ошибка авторизации, не удалось получить данные.");
+			//Log.getLogger().warning(exn.getStackTrace());
+			//Main.frame.changeWindow(Frame.WINDOW_LOGIN);
+			setLogin(false);
+			loadingComplite();
+		} catch (AuthException ex) {
+			errorDialog(Main.locale.get("auth_error").replaceFirst("%%RESPONSE%%", ex.getMessage()), GraphActions.getLocale().get("auth_error_title"));
+			Log.getLogger().warning("Ошибка логина. Описание: "+ex.getMessage());
+			setLogin(false);
+			loadingComplite();
 		}
 	}
 }

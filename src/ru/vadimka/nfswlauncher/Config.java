@@ -11,13 +11,13 @@ import org.json.simple.parser.ParseException;
 
 import ru.vadimka.nfswlauncher.utils.ConfigUtils;
 
-public class Config {
+public abstract class Config {
 	public static final String WINDOW_TITLE = "Racing World";
-	public static final String VERSION = "0.11";
+	public static final String VERSION = "0.12.2";
 	public static final String UPDATE_INFO_URL = "https://raw.githubusercontent.com/VadimkaG/NFSWlauncher/master/version.txt";
 	public static final String SERVERS_LIST_LINK = "https://raw.githubusercontent.com/VadimkaG/NFSWlauncher/master/server-list.xml";
 	public static final boolean MODE_LOG_FILE = true;
-	public static final boolean MODE_LOG_CONSOLE = true;
+	public static final boolean MODE_LOG_CONSOLE = false;
 	public static boolean DISCORD_ALLOW = true;
 	public static String WINE_PATH;
 	public static String WINE_PREFIX;
@@ -33,6 +33,7 @@ public class Config {
 	public static String USER_PASSWORD;
 	public static boolean BACKGROUND_WORCK_DENY = false;
 	public static boolean IS_UPDATE_CHECK = true;
+	public static boolean IS_DYNAMIC_BACKGROUND = false;
 	/**
 	 * Загрузить настройки из конфига
 	 */
@@ -45,9 +46,9 @@ public class Config {
 		USER_PASSWORD = "";
 		if (str != null) {
 			String[] decoded = new String(str.getBytes()).split("\t");
-			if (decoded != null && decoded.length == 3) {
+			if (decoded != null && decoded.length == 2) {
 				USER_LOGIN = decoded[0];
-				USER_PASSWORD = decoded[2];
+				USER_PASSWORD = decoded[1];
 			}
 		}
 		
@@ -88,9 +89,11 @@ public class Config {
 		if (str == null) LANGUAGE = "ru";
 		else LANGUAGE = str;
 		
-		BACKGROUND_WORCK_DENY = config.getBoolean("background_work");
+		BACKGROUND_WORCK_DENY = config.getBoolean("background_work",BACKGROUND_WORCK_DENY);
 		
-		IS_UPDATE_CHECK = config.getBoolean("is_update_check",true);
+		IS_UPDATE_CHECK = config.getBoolean("is_update_check",IS_UPDATE_CHECK);
+		
+		IS_DYNAMIC_BACKGROUND = config.getBoolean("is_dynamic_background",IS_DYNAMIC_BACKGROUND);
 		
 		str = config.getString("winepath");
 		if (str == null) WINE_PATH = "";
@@ -111,7 +114,7 @@ public class Config {
 		ConfigUtils config = new ConfigUtils(Main.getConfigDir()+File.separator+"launcher.cfg");
 		
 		if (USER_LOGIN != "" && USER_PASSWORD != "") {
-			String account = new String(USER_LOGIN+"\tABRAKODABRA\t"+USER_PASSWORD);
+			String account = new String((USER_LOGIN+"\t"+USER_PASSWORD).getBytes());
 			config.set("account", account);
 		}
 		
@@ -139,6 +142,7 @@ public class Config {
 		config.set("language", LANGUAGE);
 		config.set("background_work", BACKGROUND_WORCK_DENY);
 		config.set("is_update_check", IS_UPDATE_CHECK);
+		config.set("is_dynamic_background", IS_DYNAMIC_BACKGROUND);
 		config.set("discord_allow", DISCORD_ALLOW);
 		config.save();
 	}

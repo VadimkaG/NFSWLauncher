@@ -10,7 +10,6 @@ import java.util.logging.Level;
 
 import ru.vadimka.nfswlauncher.Log;
 import ru.vadimka.nfswlauncher.Main;
-import ru.vadimka.nfswlauncher.utils.AsyncTasksUtils;
 import ru.vadimka.nfswlauncher.utils.CheckSum;
 import ru.vadimka.nfswlauncher.utils.FileDownloader;
 import ru.vadimka.nfswlauncher.utils.RWAC;
@@ -20,17 +19,28 @@ public class RWACFile {
 	private String FilePath;
 	private String FileName;
 	private List<String> CheckSums;
-	protected static int filesInProgress = 0;
 	
-	public RWACFile(String donwloadLink, String fileName, String filePath, List<String> checkSumms) {}
+	public RWACFile(String donwloadLink, String fileName, String filePath, List<String> checkSumms) {
+		try {
+			if (donwloadLink.equalsIgnoreCase("")) {
+				fileDownloader = null;
+			} else
+				fileDownloader = new FileDownloader(donwloadLink);
+		} catch (MalformedURLException e) {
+			Log.getLogger().warning("Не верная ссылка на загрузку файла: "+filePath+File.pathSeparator+fileName);
+			fileDownloader = null;
+		}
+		CheckSums = checkSumms;
+		FileName = fileName;
+		FilePath = filePath;
+	}
 	/**
 	 * Добавить в задачи загрузку данного файла
 	 */
-	public void fix() {}
-	/**
-	 * Дождаться всех задач
-	 */
-	public static void waitAllTasks() {}
+	public boolean fix() {
+		// TODO: fix code here
+		return false;
+	}
 	@Override
 	public String toString() {
 		return getPath();

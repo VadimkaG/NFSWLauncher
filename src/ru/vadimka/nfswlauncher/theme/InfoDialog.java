@@ -24,28 +24,24 @@ public class InfoDialog {
 			"Разработчик лаунчера: Vadimka - vadik.golubeff@yandex.ru\n"+
 			"Автор дизайна: Ryan Cooper - Discord: Ryan Cooper (Cooperyan)#9057\n"+
 			"Что изменилось в этой версии:\n"+
-			"- Разработан дизайн (и да, покачто в таком ужасном качестве xD)\n"+
-			"- Добавлена проверка целостности клиента\n"+
-			"- Добавлена интеграция Discord\n"+
-			"- Обновлена система логгирования\n"+
-			"- Оптимизация лаунчера\n"+
-			"- Изменен способ хранения аккаунта\n"+
-			"- Изменен способ хранения последнего сервера\n"+
-			"- Добавлена поддержка серверов с HTTPS";
+			"-  Теперь лаунчер будет чуть более адекватно реагировать на сервера в оффлайн.\n"+
+			"- Теперь RWAC может удалять файлы игры по требованию сервера.\n"+
+			"  Файлы не удалятся на всегда. Как и положено они откопируются в каталог backup\n" +
+			"  и восстановятся, если вы будете играть на серверах без RWAC\n" +
+			"- Слегка оптимизирован RWAC. Поправлены незначительные баги"+
+			"- Пофикшен баг из-за которого RWAC отказывался создавать директории";
 		default:
 			return "Launcher version: "+Config.VERSION+"\n"+
 			"Design version: "+DESIGN_VERSION+"\n"+
 			"Launcher developer: Vadimka - vadik.golubeff@yandex.ru\n"+
 			"Design author: Ryan Cooper - Discord: Ryan Cooper (Cooperyan)#9057\n"+
 			"What has changed in this version:\n"+
-			"- Design developed\n"+
-			"- Added client integrity check\n"+
-			"- Discord integration added\n"+
-			"- Updated logging system\n"+
-			"- Launcher Optimization\n"+
-			"- Changed account storage method\n"+
-			"- Changed the storage method of the last server\n"+
-			"- Added support for servers with HTTPS";
+			"- Now the launcher will respond a little more adequately to servers offline.\n"+
+			"- RWAC can now delete game files on server request.\n"+
+			"  Files will not be deleted forever. As expected, they are copied to backup dir\n" +
+			"  and recover if you play on servers without RWAC\n" +
+			"- Slightly optimized RWAC. Minor bugs fixed"+
+			"- Fixed a bug due to which RWAC refused to create directories";
 		}
 	}
 	

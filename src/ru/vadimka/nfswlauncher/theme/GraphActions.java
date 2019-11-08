@@ -2,6 +2,7 @@ package ru.vadimka.nfswlauncher.theme;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.StringReader;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -21,6 +22,7 @@ import javax.xml.transform.stream.StreamResult;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 import ru.vadimka.nfswlauncher.Config;
@@ -33,6 +35,7 @@ import ru.vadimka.nfswlauncher.ValueObjects.ServerVO;
 import ru.vadimka.nfswlauncher.client.Game;
 import ru.vadimka.nfswlauncher.client.GameStartException;
 import ru.vadimka.nfswlauncher.utils.AsyncTasksUtils;
+import ru.vadimka.nfswlauncher.utils.HTTPRequest;
 
 public class GraphActions {
 	/**
@@ -40,29 +43,44 @@ public class GraphActions {
 	 */
 	public static List<ServerVO> getServerList() {
 		try {
+			
+			HTTPRequest request = new HTTPRequest(Config.SERVERS_LIST_LINK);
+			
+			request.proc();
+			
+			if (request.getResponseCode() != 200) return new ArrayList<ServerVO>();
+			
+			String xml = request.getResponse();
+			
+			InputSource source = new InputSource(new StringReader(xml));
+			
 			final List<ServerVO> servers = new ArrayList<ServerVO>();
 			DocumentBuilder documentBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-			Document document = documentBuilder.parse(Config.SERVERS_LIST_LINK);
+			Document document = documentBuilder.parse(source);
 			
 			Node Servers = document.getDocumentElement();
 			NodeList items = Servers.getChildNodes();
 			
 			for (int i = 0; i < items.getLength(); i++) {
 				Node server = items.item(i);
-				if (server.getNodeName() == "server") {
+				if (
+						server.getNodeName() == "server" && 
+						server.getAttributes().getNamedItem("protocol") != null && 
+						server.getAttributes().getNamedItem("ip") != null) {
+					
+					final String protocol = new String(server.getAttributes().getNamedItem("protocol").getTextContent());
+					final String ip = new String(server.getAttributes().getNamedItem("ip").getTextContent());
+					final String name = new String(server.getTextContent());
+					
+					boolean isHttps = false;
+					if (server.getAttributes().getNamedItem("https") != null  && server.getAttributes().getNamedItem("https").getTextContent().equalsIgnoreCase("true"))
+						isHttps = true;
+					
+					final boolean https = new Boolean(isHttps);
+					
 					AsyncTasksUtils.addTask(() -> {
-						if (server.getAttributes().getNamedItem("ip") == null || server.getAttributes().getNamedItem("protocol").getTextContent() == null) {
-							Log.getLogger().warning("Один сервер не добавлен в список из-за неверной структуры в xml");
-							return;
-						}
-						boolean isHttps = false;
-						if (
-								server.getAttributes().getNamedItem("https") != null
-									&&
-								server.getAttributes().getNamedItem("https").getTextContent().equalsIgnoreCase("true")
-							) isHttps = true;
-						ServerVO vo = new ServerVO(server.getAttributes().getNamedItem("ip").getTextContent(),server.getTextContent(),isHttps);
-						vo.setProtocol(Main.genProtocolByName(server.getAttributes().getNamedItem("protocol").getTextContent(),vo));
+						ServerVO vo = new ServerVO(ip,name,https);
+						vo.setProtocol(Main.genProtocolByName(protocol,vo));
 						servers.add(vo);
 					});
 				}
@@ -110,7 +128,7 @@ public class GraphActions {
 			Log.getLogger().log(Level.WARNING,"Ошибка при попытке получить список серверов.",e);
 		}
 		
-		return null;
+		return new ArrayList<ServerVO>();
 	}
 	/**
 	 * Получить текущую локализацию
@@ -237,6 +255,7 @@ public class GraphActions {
 	 * Запустить игру
 	 */
 	public static void startGame() {
+		if (Main.game != null && Main.game.isAlive()) return;
 		Main.frame.loading();
 		new Thread(() -> {
 			if (Main.account == null) {
@@ -423,10 +442,11 @@ public class GraphActions {
 	 * Установить "Закрывать ли лаунчер после запуска игры"
 	 * @param b - Логическое значение
 	 */
-	public static void setLauncherSettings(boolean BackgroundWork, boolean IsUpdateCheck, boolean discordAllow) {
+	public static void setLauncherSettings(boolean BackgroundWork, boolean IsUpdateCheck, boolean discordAllow, boolean is_dynamic_background) {
 		Config.BACKGROUND_WORCK_DENY = BackgroundWork;
 		Config.IS_UPDATE_CHECK = IsUpdateCheck;
 		Config.DISCORD_ALLOW = discordAllow;
+		Config.IS_DYNAMIC_BACKGROUND = is_dynamic_background;
 		Config.save();
 	}
 	/**
@@ -441,5 +461,11 @@ public class GraphActions {
 	 */
 	public static boolean getDiscordAllow() {
 		return Config.DISCORD_ALLOW;
+	}
+	/**
+	 * Разрешить ли динамиечкий фон
+	 */
+	public static boolean isDynamicBackground() {
+		return Config.IS_DYNAMIC_BACKGROUND;
 	}
 }
