@@ -9,4 +9,4 @@
  - [java-discord-rpc](https://github.com/MinnDevelopment/java-discord-rpc)
  - [jna-4.4.0](https://github.com/java-native-access/jna)
  - [jsr305-3.0.2](https://github.com/mercyblitz/jsr)
- - RWEncoder
+ - [RWEncoder](https://github.com/VadimkaG/RWCryptoLib)
