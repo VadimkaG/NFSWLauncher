@@ -23,10 +23,10 @@ import javax.swing.plaf.FontUIResource;
 import ru.vadimka.nfswlauncher.ValueObjects.Account;
 import ru.vadimka.nfswlauncher.ValueObjects.ServerVO;
 import ru.vadimka.nfswlauncher.client.Game;
-import ru.vadimka.nfswlauncher.protocol.RacingWorld;
+//import ru.vadimka.nfswlauncher.protocol.RacingWorld;
 import ru.vadimka.nfswlauncher.protocol.ServerInterface;
 import ru.vadimka.nfswlauncher.protocol.Soapbox;
-import ru.vadimka.nfswlauncher.protocol.SoapboxLocked;
+//import ru.vadimka.nfswlauncher.protocol.SoapboxLocked;
 import ru.vadimka.nfswlauncher.theme.GUI;
 import ru.vadimka.nfswlauncher.theme.GUIResourseLoader;
 import ru.vadimka.nfswlauncher.theme.GraphActions;
@@ -202,10 +202,10 @@ public abstract class Main {
 	 */
 	public static ServerInterface genProtocolByName(String name, ServerVO vo) {
 		switch(name.trim()) {
-		case "soapbox-Locked":
-			return new SoapboxLocked(vo);
-		case "RacingWorld":
-			return new RacingWorld(vo);
+//		case "soapbox-Locked":
+//			return new SoapboxLocked(vo);
+//		case "RacingWorld":
+//			return new RacingWorld(vo);
 		default:
 			return new Soapbox(vo);
 		}
