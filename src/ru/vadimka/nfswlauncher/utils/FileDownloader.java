@@ -53,6 +53,9 @@ public class FileDownloader {
 		}
 		
 	}
+	public InputStream download() throws IOException {
+		return new Connector(url);
+	}
 	/**
 	 * Загрузить Как файл
 	 * @param outFilePath
@@ -115,5 +118,37 @@ public class FileDownloader {
 				os.close();
 			} catch (Exception e) {}
 		}
+	}
+	
+	public static class Connector extends InputStream {
+		
+		URLConnection c;
+		InputStream is;
+		
+		public Connector(URL url) {
+			try {
+				c = url.openConnection();
+				
+				c.setConnectTimeout(15 * 1000);
+				
+				c.connect();
+				is = c.getInputStream();
+			} catch (IOException e) {
+			}
+		}
+		@Override
+		public int read() throws IOException {
+			return is.read();
+		}
+		@Override
+		public int read(byte[] b) throws IOException {
+			return is.read(b);
+		}
+		@Override
+		public int read(byte[] b, int off, int len) throws IOException {
+			
+			return is.read(b, off, len);
+		}
+		
 	}
 }

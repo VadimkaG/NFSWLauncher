@@ -1,11 +1,8 @@
 package ru.vadimka.nfswlauncher.client;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.logging.Level;
 
@@ -14,19 +11,11 @@ import ru.vadimka.nfswlauncher.Config;
 import ru.vadimka.nfswlauncher.Log;
 import ru.vadimka.nfswlauncher.Main;
 import ru.vadimka.nfswlauncher.theme.GraphActions;
-import ru.vadimka.nfswlauncher.utils.CheckSum;
 import ru.vadimka.nfswlauncher.utils.DiscordController;
 
 public class Game {
 	
 	private Process game;
-	
-	private static final byte[] CHECKSUM_LaunchFile = {
-			(byte) 0x4c, (byte) 0x32, (byte) 0x93, (byte) 0x6d,
-			(byte) 0xeb, (byte) 0xff, (byte) 0xcb, (byte) 0xdc,
-			(byte) 0x20, (byte) 0x8d, (byte) 0x39, (byte) 0x50,
-			(byte) 0x2b, (byte) 0x79, (byte) 0xa5, (byte) 0x6f
-	};
 	
 	public Game(String token, String userId, String serverEnginePath, String gamePath) {
 		try {
@@ -98,21 +87,6 @@ public class Game {
 		}
 	};
 	/**
-	 * Является ли файл, запускным файлом игры (nfsw.exe)
-	 * @param path - Путь к файлу
-	 * @return boolean
-	 */
-	public static boolean isLaunchFile(String path) {
-		InputStream is = null;
-		try {
-			is = new FileInputStream(path);
-		} catch (FileNotFoundException e) {
-			Log.getLogger().warning("Файл nfsw.exe не найден.");
-			return false;
-		}
-		return Arrays.equals(CheckSum.get(is), CHECKSUM_LaunchFile);
-	}
-	/**
 	 * Читает inputstream игры
 	 */
 	private Thread inputReader = new Thread(() -> {
@@ -125,7 +99,33 @@ public class Game {
 		}
 	});
 	public static File getConfigFile() {
-		return new File(Main.getConfigDir()+File.separator+"Settings"+File.separator+"UserSettings.xml");
+		File gameConfig = null;
+		if (!Main.getPlatform().equalsIgnoreCase("Windows") && !Config.WINE_PREFIX.equalsIgnoreCase("")) {
+			File users = new File(Config.WINE_PREFIX+File.separator+"drive_c"+File.separator+"users");
+			if (users.exists()) {
+				String username = null;
+				File[] files = users.listFiles();
+				if (files != null)
+					for (File file : files) {
+						if (file.getName().equalsIgnoreCase("Public")) continue;
+						username = file.getName();
+						break;
+					}
+				if (username != null) {
+					gameConfig = new File(
+							users.getAbsolutePath()+File.separator+
+							username+File.separator+
+							"Application Data"+File.separator+
+							"Need for Speed World"+File.separator+
+							"Settings"+File.separator+
+							"UserSettings.xml"
+						);
+					if (gameConfig.exists()) return gameConfig;
+				}
+			}
+		} else
+			gameConfig = new File(Main.getConfigDir()+File.separator+"Settings"+File.separator+"UserSettings.xml");
+		return gameConfig;
 	}
 	public boolean isAlive() {
 		if (game != null && game.isAlive()) return true;

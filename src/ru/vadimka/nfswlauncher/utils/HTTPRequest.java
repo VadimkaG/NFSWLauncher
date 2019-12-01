@@ -36,7 +36,7 @@ public class HTTPRequest {
 	
 	private Action actionAfterRequest = null;
 	
-	private static final boolean DEBUG = true;
+	private static final boolean DEBUG = false;
 	
 	private String USER_AGENT = "Mozilla/5.0 ("+System.getProperty("os.name")+" "+System.getProperty("os.arch")+") "+Config.WINDOW_TITLE+" "+Config.VERSION;
 	

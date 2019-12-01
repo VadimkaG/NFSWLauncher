@@ -29,7 +29,8 @@ public abstract class Log {
 	 */
 	public static String stackTraceToString(Throwable th) {
 		String str = "";
-		str = stackTraceToString(th.getStackTrace());
+		if (th.getStackTrace() != null)
+			str = stackTraceToString(th.getStackTrace());
 		Throwable parent = th;
 		String tab = "\t";
 		while ((parent = parent.getCause()) != null) {
@@ -38,7 +39,8 @@ public abstract class Log {
 					+tab+"Описание: "+parent.getMessage()+"\n"
 					+tab+"Использованный путь: \n";
 			tab += "\t";
-			str += stackTraceToString(parent.getStackTrace(),tab);
+			if (parent.getStackTrace() != null)
+				str += stackTraceToString(parent.getStackTrace(),tab);
 		}
 		return str;
 	}
@@ -99,7 +101,7 @@ public abstract class Log {
 				message += "\nКласс: "+th.getClass().getCanonicalName();
 				message += "\nОписание: "+th.getMessage();
 				message += "\nПричина: "+th.getCause();
-				message += "\nИспользованный путь:\n"+stackTraceToString(th.getStackTrace());
+				message += "\nИспользованный путь:\n"+stackTraceToString(th);
 				message += "\n=============================================";
 			}
 			print(message);

@@ -1,5 +1,6 @@
 package ru.vadimka.nfswlauncher.protocol;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
 import java.net.HttpURLConnection;
@@ -23,7 +24,6 @@ import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 import ru.vadimka.nfswlauncher.AuthException;
-import ru.vadimka.nfswlauncher.Config;
 import ru.vadimka.nfswlauncher.Log;
 import ru.vadimka.nfswlauncher.Main;
 import ru.vadimka.nfswlauncher.ValueObjects.Account;
@@ -332,27 +332,12 @@ public class Soapbox implements ServerInterface {
 		return RWACindex;
 	}
 
-//	@Override
-//	public boolean useRWAC() {
-//		return RWACuse;
-//	}
-//	
-//	@Override
-//	public String getRWACLink() {
-//		return VO.getHttpLink()+"/soapbox-race-core/fileschecker";
-//	}
-//
-//	@Override
-//	public void setRWACindex(byte[] index) {
-//		RWACindex = index;
-//	}
-
 	@Override
 	public void launchGame() throws GameStartException {
 		if (!RWAC.checkBeforeStart()) throw new GameStartException(Main.locale.get("error_game_is_modified"));
 		//ServerRedirrect sr = new ServerRedirrect(Main.account.getServer().getIP(), 8080);
 		Main.account.getServer().setRedirrect(Main.account.getServer().getIP()/*sr.getLocalHost()*/);
-		Main.game = new Game(Main.account.getToken(), Main.account.getID(), Main.account.getServer().getProtocol().getServerEngine(), Config.GAME_PATH);
+		Main.game = new Game(Main.account.getToken(), Main.account.getID(), Main.account.getServer().getProtocol().getServerEngine(), Main.getGameDir().getAbsolutePath()+File.separator+"nfsw.exe");
 		//Main.frame.loadingComplite();
 	}
 

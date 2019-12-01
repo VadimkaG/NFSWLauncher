@@ -41,12 +41,10 @@ public interface GraphModule {
 	boolean questionDialog(String text, String title);
 	/**
 	 * Получить путь к файлу, который выберет пользователь
+	 * @param path - путь к ссылке, которая будет открыта. null = по умолчанию
+	 * @param itsFile - Выбрать файл или каталог
 	 */
-	String fileSelect();
-	/**
-	 * Получить путь к папке, который выберет пользователь
-	 */
-	String directorySelect();
+	String fileSelect(String path, boolean itsFile);
 	/**
 	 * Показать/Скрыть окно
 	 */
@@ -66,6 +64,17 @@ public interface GraphModule {
 	 * @param Status
 	 */
 	void setDownloadState(boolean Status);
+	/**
+	 * Загружаются ли файлы в данный момент
+	 * @param Status
+	 * @param MaxValue
+	 */
+	void setDownloadState(boolean Status, int MaxValue);
+	/**
+	 * Загружаются ли файлы в данный момент
+	 * @param value
+	 */
+	void DownloadStateAddValue();
 	/**
 	 * уничтожить окно
 	 */

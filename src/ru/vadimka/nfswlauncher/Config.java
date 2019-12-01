@@ -1,9 +1,6 @@
 package ru.vadimka.nfswlauncher;
 
 import java.io.File;
-import java.util.Base64;
-import java.util.Base64.Decoder;
-import java.util.Base64.Encoder;
 
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -13,7 +10,7 @@ import ru.vadimka.nfswlauncher.utils.ConfigUtils;
 
 public abstract class Config {
 	public static final String WINDOW_TITLE = "Racing World";
-	public static final String VERSION = "0.12.2";
+	public static final String VERSION = "0.14";
 	public static final String UPDATE_INFO_URL = "https://raw.githubusercontent.com/VadimkaG/NFSWlauncher/master/version.txt";
 	public static final String SERVERS_LIST_LINK = "https://raw.githubusercontent.com/VadimkaG/NFSWlauncher/master/server-list.xml";
 	public static final boolean MODE_LOG_FILE = true;
@@ -114,7 +111,7 @@ public abstract class Config {
 		ConfigUtils config = new ConfigUtils(Main.getConfigDir()+File.separator+"launcher.cfg");
 		
 		if (USER_LOGIN != "" && USER_PASSWORD != "") {
-			String account = new String((USER_LOGIN+"\t"+USER_PASSWORD).getBytes());
+			String account = new String((USER_LOGIN+"\n"+USER_PASSWORD).getBytes());
 			config.set("account", account);
 		}
 		

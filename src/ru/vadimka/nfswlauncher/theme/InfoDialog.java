@@ -24,24 +24,24 @@ public class InfoDialog {
 			"Разработчик лаунчера: Vadimka - vadik.golubeff@yandex.ru\n"+
 			"Автор дизайна: Ryan Cooper - Discord: Ryan Cooper (Cooperyan)#9057\n"+
 			"Что изменилось в этой версии:\n"+
-			"-  Теперь лаунчер будет чуть более адекватно реагировать на сервера в оффлайн.\n"+
-			"- Теперь RWAC может удалять файлы игры по требованию сервера.\n"+
-			"  Файлы не удалятся на всегда. Как и положено они откопируются в каталог backup\n" +
-			"  и восстановятся, если вы будете играть на серверах без RWAC\n" +
-			"- Слегка оптимизирован RWAC. Поправлены незначительные баги"+
-			"- Пофикшен баг из-за которого RWAC отказывался создавать директории";
+			"- Теперь лаунчер создает файл игровых настроек, если он не существует\n"+
+			"- Отныне на WINE тоже работает изменение настроек игры.\n"+
+			"- Теперь лаунчер в конфиге хранит путь директории игры,\n"+
+			"  а не путь к файлу запуска. Вам придется выбрать путь к игре заного.\n"+
+			"- Теперь после обновлений автоматически будет появляться окно 'О лаунчере'\n"+
+			"  Эффект будет виден только со следующего обновления.";
 		default:
 			return "Launcher version: "+Config.VERSION+"\n"+
 			"Design version: "+DESIGN_VERSION+"\n"+
 			"Launcher developer: Vadimka - vadik.golubeff@yandex.ru\n"+
 			"Design author: Ryan Cooper - Discord: Ryan Cooper (Cooperyan)#9057\n"+
 			"What has changed in this version:\n"+
-			"- Now the launcher will respond a little more adequately to servers offline.\n"+
-			"- RWAC can now delete game files on server request.\n"+
-			"  Files will not be deleted forever. As expected, they are copied to backup dir\n" +
-			"  and recover if you play on servers without RWAC\n" +
-			"- Slightly optimized RWAC. Minor bugs fixed"+
-			"- Fixed a bug due to which RWAC refused to create directories";
+			"- Launcher creates a game settings file if it does not exist\n"+
+			"- Changing the game settings also works on WINE.\n"+
+			"- The launcher in the config stores the path of the game directory,\n"+
+			"  and not the path to the launch file. You will have to choose the path to the game.\n"+
+			"- Now after the updates the 'About Launcher' window will automatically appear\n"+
+			"  The effect will be visible only from the next update.";
 		}
 	}
 	

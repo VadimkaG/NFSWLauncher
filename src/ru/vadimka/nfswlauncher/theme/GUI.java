@@ -13,6 +13,8 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.File;
 import java.net.URI;
 import java.util.List;
@@ -129,7 +131,14 @@ public class GUI extends JFrame implements GraphModule {
 		setSize(new Dimension(800, 510));
 		setTitle(Config.WINDOW_TITLE);
 		setLocationRelativeTo(null);
-		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+//		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		addWindowListener(new WindowAdapter() {
+			@Override
+			public void windowClosing(WindowEvent e) {
+				Main.shutdown(0);
+				super.windowClosing(e);
+			}
+		});
 		setUndecorated(true);
 		setResizable(false);
 		window = new JPanel();
@@ -286,6 +295,11 @@ public class GUI extends JFrame implements GraphModule {
 					return;
 				}
 				loading();
+				if (passField.getPassword().length < 1 || lofinField.getText().length() < 1) {
+					errorDialog(GraphActions.getLocale().get("reg_error").replace("\\n", "\n"), GraphActions.getLocale().get("reg_error_title"));
+					loadingComplite();
+					return;
+				}
 				String password = passField.getPasswordSha1();
 				new Thread(() -> {
 					try {
@@ -529,7 +543,7 @@ public class GUI extends JFrame implements GraphModule {
 		StyleConstants.setAlignment(center, StyleConstants.ALIGN_CENTER);
 		doc.setParagraphAttributes(0, doc.getLength(), center, false);
 		gameStartFileField.setFont(gameStartFileField.getFont().deriveFont(10f));
-		gameStartFileField.setText(GraphActions.getLocale().get("btn_change_file_game")+"\n"+GraphActions.getGameFilePath());
+		gameStartFileField.setText(GraphActions.getLocale().get("btn_select_game_folder")+"\n"+Config.GAME_PATH);
 		gameStartFileField.setBounds(523, 221, 189, 59);
 		gameStartFileField.addMouseListener(new MouseListener() {
 			@Override
@@ -542,9 +556,16 @@ public class GUI extends JFrame implements GraphModule {
 			public void mouseEntered(MouseEvent e) {}
 			@Override
 			public void mouseClicked(MouseEvent e) {
-				String file = fileSelect(GraphActions.getGameFilePath());
+				String file = fileSelect(Config.GAME_PATH, false, GraphActions.getLocale().get("btn_select_game_folder"));
 				if (file == null) return;
 				gameStartFileField.setText(GraphActions.getLocale().get("btn_change_file_game")+"\n"+file);
+				if (
+						!new File(file+File.separator+"nfsw.exe").exists()
+						&&
+						!questionDialog(GraphActions.getLocale().get("gamedir_error_file").replace("\\n", "\n"), GraphActions.getLocale().get("gamedir_error_title"))
+					) {
+						return;
+				}
 				GraphActions.setGameFilePath(file);
 			}
 		});
@@ -716,8 +737,7 @@ public class GUI extends JFrame implements GraphModule {
 				cset.setVsync(vsyncField.isSelected());
 				
 				// Записываем настройки
-				if (Main.getPlatform().equalsIgnoreCase("Windows"))
-					GraphActions.setGameSettings(cset);
+				GraphActions.setGameSettings(cset);
 				
 				if (dybbg_changed) {
 					Main.restart();
@@ -937,34 +957,21 @@ public class GUI extends JFrame implements GraphModule {
 		if (a == 0) return true;
 		else return false;
 	}
-	public String fileSelect(String text) {
-		String filePath = "";
-		JFileChooser filechooser = new JFileChooser(text);
-		int ret = filechooser.showDialog(null, GraphActions.getLocale().get("btn_change_file_game")); 
-		if (ret == JFileChooser.APPROVE_OPTION) {
-			File file = filechooser.getSelectedFile();
-			filePath = file.getAbsolutePath();
-			return filePath;
-		} else return null;
-	}
 	@Override
-	public String fileSelect() {
-		String filePath = "";
-		JFileChooser filechooser = new JFileChooser();
-		int ret = filechooser.showDialog(null, GraphActions.getLocale().get("btn_change_file_game")); 
-		if (ret == JFileChooser.APPROVE_OPTION) {
-			File file = filechooser.getSelectedFile();
-			filePath = file.getAbsolutePath();
-			return filePath;
-		} else return null;
+	public String fileSelect(String path, boolean itsFile) {
+		return fileSelect(path, itsFile, GraphActions.getLocale().get("btn_file_select"));
 	}
-	@Override
-	public String directorySelect() {
+	public String fileSelect(String path, boolean itsFile, String title) {
 		String filePath = "";
-		JFileChooser filechooser = new JFileChooser();
-		filechooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-		filechooser.setAcceptAllFileFilterUsed(false);
-		int ret = filechooser.showDialog(null, GraphActions.getLocale().get("btn_change_file_game")); 
+		JFileChooser filechooser;
+		if (path == null)
+			filechooser = new JFileChooser();
+		else
+			filechooser = new JFileChooser(path);
+		if (itsFile) filechooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+		else  filechooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+		filechooser.setDialogTitle(title);
+		int ret = filechooser.showDialog(null, GraphActions.getLocale().get("btn_file_select")); 
 		if (ret == JFileChooser.APPROVE_OPTION) {
 			File file = filechooser.getSelectedFile();
 			filePath = file.getAbsolutePath();
@@ -997,11 +1004,30 @@ public class GUI extends JFrame implements GraphModule {
 	}
 	@Override
 	public void setDownloadState(boolean Status) {
+		setDownloadState(Status, 0);
+	}
+	@Override
+	public void setDownloadState(boolean Status, int MaxValue) {
 		if (Status) {
-			lblServerTitle.setText(GraphActions.getLocale().get("loading_files"));
+			current_files_loaded = 0;
+			max_files_loaded = MaxValue;
+			lblServerTitle.setText(
+					GraphActions.getLocale().get("loading_files").replace("%MAX%",String.valueOf(max_files_loaded))
+						.replace("%CUR%", String.valueOf(current_files_loaded))
+				);
 		} else {
 			lblServerTitle.setText(GraphActions.getLocale().get("loading"));
 		}
+	}
+	private int current_files_loaded = 0;
+	private int max_files_loaded = 0;
+	@Override
+	public void DownloadStateAddValue() {
+		current_files_loaded++;
+		lblServerTitle.setText(
+				GraphActions.getLocale().get("loading_files").replace("%MAX%",String.valueOf(max_files_loaded))
+					.replace("%CUR%", String.valueOf(current_files_loaded))
+			);
 	}
 	private void login() {
 		if (GraphActions.getCurrentServer() == null) {

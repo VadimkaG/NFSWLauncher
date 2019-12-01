@@ -21,7 +21,11 @@ public abstract class GUIResourseLoader {
 	public static void loadIcon(Loader<Image> loader) {
 		AsyncTasksUtils.addTask(() -> {
 			loader.proc(Toolkit.getDefaultToolkit().getImage(Main.class.getResource(RESOURCE_PATH+"icon.png")));
-		});
+		},"Загрузка иконки");
+	}
+	
+	public static InputStream getGameSettingsFile() {
+		return Main.class.getResourceAsStream("resources/"+"UserSettings.xml");
 	}
 	
 	public static InputStream getBackgroundIS() {

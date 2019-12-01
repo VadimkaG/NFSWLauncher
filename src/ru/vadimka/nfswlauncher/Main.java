@@ -23,10 +23,10 @@ import javax.swing.plaf.FontUIResource;
 import ru.vadimka.nfswlauncher.ValueObjects.Account;
 import ru.vadimka.nfswlauncher.ValueObjects.ServerVO;
 import ru.vadimka.nfswlauncher.client.Game;
-//import ru.vadimka.nfswlauncher.protocol.RacingWorld;
+import ru.vadimka.nfswlauncher.protocol.RacingWorld;
 import ru.vadimka.nfswlauncher.protocol.ServerInterface;
 import ru.vadimka.nfswlauncher.protocol.Soapbox;
-//import ru.vadimka.nfswlauncher.protocol.SoapboxLocked;
+import ru.vadimka.nfswlauncher.protocol.SoapboxLocked;
 import ru.vadimka.nfswlauncher.theme.GUI;
 import ru.vadimka.nfswlauncher.theme.GUIResourseLoader;
 import ru.vadimka.nfswlauncher.theme.GraphActions;
@@ -202,10 +202,10 @@ public abstract class Main {
 	 */
 	public static ServerInterface genProtocolByName(String name, ServerVO vo) {
 		switch(name.trim()) {
-		/*case "soapbox-Locked":
+		case "soapbox-Locked":
 			return new SoapboxLocked(vo);
 		case "RacingWorld":
-			return new RacingWorld(vo);*/
+			return new RacingWorld(vo);
 		default:
 			return new Soapbox(vo);
 		}
@@ -281,7 +281,10 @@ public abstract class Main {
 					// =======================
 					
 					Log.getLogger().info("Обновление: Обновление завершено.");
-					restart();
+					String[] args = {
+						"showChangelog"
+					};
+					restart(args);
 				} else {
 					//frame.showDialog(locale.get("update_error_compile"), locale.get("update_error_title"));
 					frame.infoDialog(locale.get("update_error_compile"), locale.get("update_error_title"));
@@ -354,14 +357,7 @@ public abstract class Main {
 	 * @return
 	 */
 	public static File getGameDir() {
-		return new File(Config.GAME_PATH).getParentFile();
-	}
-	/**
-	 * Получить рабочую директорию лаунчера
-	 * @return
-	 */
-	public static File getGameSettingsFile() {
-		return new File(getConfigDir().getAbsolutePath()+File.separator+"Settings"+File.separator+"UserSettings.xml");
+		return new File(Config.GAME_PATH);
 	}
 	/**
 	 * Получить язык установленный в операционной система

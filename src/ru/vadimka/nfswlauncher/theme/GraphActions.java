@@ -1,7 +1,10 @@
 package ru.vadimka.nfswlauncher.theme;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.StringReader;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -82,7 +85,7 @@ public class GraphActions {
 						ServerVO vo = new ServerVO(ip,name,https);
 						vo.setProtocol(Main.genProtocolByName(protocol,vo));
 						servers.add(vo);
-					});
+					},"Загрузка списка серверов");
 				}
 			}
 			
@@ -200,19 +203,16 @@ public class GraphActions {
 		return Main.account.getLogin();
 	}
 	/**
-	 * Получить путь к файлу игры
-	 * @return
+	 * Установить путь к директории игры
+	 * @param path
 	 */
-	public static String getGameFilePath() {
-		return Config.GAME_PATH;
-	}
 	public static void setGameFilePath(String path) {
-		if (Game.isLaunchFile(path)) {
+//		if (Game.isLaunchFile(path)) {
 			Config.GAME_PATH = path;
 			//FilePathLabel.setText(Config.GAME_PATH);
 			Config.save();
-		} else
-			Main.frame.errorDialog(Main.locale.get("launch_error_file"), Main.locale.get("launch_error_title"));
+//		} else
+//			Main.frame.errorDialog(Main.locale.get("launch_error_file"), Main.locale.get("launch_error_title"));
 	}
 	/**
 	 * Изменить путь к файлу игры
@@ -268,48 +268,58 @@ public class GraphActions {
 				Main.frame.loadingComplite();
 				return;
 			}
-			if (!Main.getPlatform().equalsIgnoreCase("Windows")) {
-				if (Main.getPlatform().equalsIgnoreCase("Unix")) {
-					if (Config.WINE_PATH.equalsIgnoreCase("") || Config.WINE_PREFIX.equalsIgnoreCase("")) {
-						boolean que = Main.frame.questionDialog(Main.locale.get("msg_wine_info_1").replace("\\n", "\n"), Main.locale.get("launch_error_title"));
-						if (!que) {
-							Main.frame.loadingComplite();
-							return;
-						}
-						String WinePath = Main.frame.fileSelect();
-						if (WinePath == null) {
-							Main.frame.loadingComplite();
-							return;
-						}
-						Main.frame.infoDialog(Main.locale.get("msg_wine_info_2").replace("\\n", "\n"), Main.locale.get("launch_error_title"));
-						String WinePrefix = Main.frame.directorySelect();
-						if (WinePrefix == null) {
-							Main.frame.loadingComplite();
-							return;
-						}
-						Config.saveWineConfig(WinePath, WinePrefix);
-						Main.frame.infoDialog(Main.locale.get("msg_wine_info_2").replace("\\n", "\n"), Main.locale.get("launch_error_title"));
+			if (Main.getPlatform().equalsIgnoreCase("Unix")) {
+				if (Config.WINE_PATH.equalsIgnoreCase("") || Config.WINE_PREFIX.equalsIgnoreCase("")) {
+					boolean que = Main.frame.questionDialog(Main.locale.get("msg_wine_info_1").replace("\\n", "\n"), Main.locale.get("launch_error_title"));
+					if (!que) {
+						Main.frame.loadingComplite();
+						return;
+					}
+					String WinePath = Main.frame.fileSelect(null,true);
+					if (WinePath == null) {
+						Main.frame.loadingComplite();
+						return;
+					}
+					Main.frame.infoDialog(Main.locale.get("msg_wine_info_2").replace("\\n", "\n"), Main.locale.get("launch_error_title"));
+					String WinePrefix = Main.frame.fileSelect(null,false);
+					if (WinePrefix == null) {
+						Main.frame.loadingComplite();
+						return;
+					}
+					Config.saveWineConfig(WinePath, WinePrefix);
+					Main.frame.infoDialog(Main.locale.get("msg_wine_info_2").replace("\\n", "\n"), Main.locale.get("launch_error_title"));
 				} else
 					Log.getLogger().info("Запуск игры в режиме wine...");
-				} else if (!Main.getPlatform().equalsIgnoreCase("Unix")) {
-					Main.frame.errorDialog("Похоже ваша платформа не поддерживается лаунчером.\nСожалеем, но дальше вам не пройти", Main.locale.get("launch_error_title"));
-					Log.getLogger().warning("Платформа "+Main.getPlatform()+" не поддерживается. Запуск отменен.");
+			} else if (!Main.getPlatform().equalsIgnoreCase("Windows")) {
+				Main.frame.errorDialog(Main.locale.get("msg_platform_unsupported").replace("\\n", "\n"), Main.locale.get("launch_error_title"));
+				Log.getLogger().warning("Платформа "+Main.getPlatform()+" не поддерживается. Запуск отменен.");
+				Main.frame.loadingComplite();
+				return;
+			}
+			if (Main.getGameDir() == null || !Main.getGameDir().exists() || !Main.getGameDir().isDirectory()) {
+				Main.frame.errorDialog(Main.locale.get("launch_error_file_not_choosed").replace("\\n", "\n"), Main.locale.get("launch_error_title"));
+				//AChangeClient.actionPerformed(new ActionEvent(0, 0, ""));
+				String filePath = Main.frame.fileSelect(null,false);
+				if (filePath != null) {
+					if (
+							!new File(filePath+File.separator+"nfsw.exe").exists()
+							&&
+							!Main.frame.questionDialog(GraphActions.getLocale().get("gamedir_error_file").replace("\\n", "\n"), GraphActions.getLocale().get("gamedir_error_title"))
+						) {
+							Main.frame.loadingComplite();
+							return;
+					}
+					GraphActions.setGameFilePath(filePath);
+				} else {
 					Main.frame.loadingComplite();
 					return;
 				}
-			}
-			if (Config.GAME_PATH.equalsIgnoreCase("")) {
-				Main.frame.errorDialog(Main.locale.get("launch_error_file_not_choosed"), Main.locale.get("launch_error_title"));
-				//AChangeClient.actionPerformed(new ActionEvent(0, 0, ""));
-				String filePath = Main.frame.fileSelect();
-				if (filePath != null)
-					GraphActions.setGameFilePath(filePath);
 			}
 			try {
 				Main.account.getServer().getProtocol().launchGame();
 			} catch (GameStartException e) {
 				Log.getLogger().log(Level.WARNING,"Ошибка при попытке запуска игры",e);
-				Main.frame.infoDialog(e.getMessage(), "Ошибка запуска");
+				Main.frame.infoDialog(e.getMessage(), Main.locale.get("launch_error_title"));
 				Main.frame.loadingComplite();
 			}
 		}).start();
@@ -332,6 +342,33 @@ public class GraphActions {
 				"shadowdetail",
 				"watersimenable");
 		File fileConfig = Game.getConfigFile();
+		
+		if (!fileConfig.exists()) {
+			File settingsFolder = fileConfig.getParentFile();
+			if (settingsFolder != null) {
+				File nfsFolder = settingsFolder.getParentFile();
+				if (nfsFolder != null && nfsFolder.getParentFile().exists()) {
+					if (!nfsFolder.exists()) nfsFolder.mkdir();
+					if (!settingsFolder.exists()) settingsFolder.mkdir();
+					InputStream is = GUIResourseLoader.getGameSettingsFile();
+					try {
+						OutputStream os = new FileOutputStream(fileConfig);
+						byte[] b = new byte[1024];
+						int i;
+						while ((i = is.read(b)) != -1) {
+							os.write(b,0,i);
+						}
+						os.close();
+						is.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+						Log.getLogger().log(Level.WARNING,"Не удалось создать файл настроек игры",e);
+						fileConfig.delete();
+					}
+				}
+			}
+		}
+		
 		if (fileConfig.exists() && fileConfig.canRead()) {
 			try {
 				DocumentBuilder documentBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
@@ -375,7 +412,7 @@ public class GraphActions {
 	 * Сохранить игровые настройки
 	 */
 	public static void setGameSettings(ClientSettings settings) {
-		Log.getLogger().info("Сохранение настроек клиента...");
+		//Log.getLogger().info("Сохранение настроек клиента...");
 		File fileConfig = Game.getConfigFile();
 		if (!fileConfig.exists() || !fileConfig.canRead() || !fileConfig.canWrite()) {
 			Log.getLogger().warning("Не удалось прочесть файл настроек клиента.");
@@ -415,6 +452,7 @@ public class GraphActions {
 			Result output = new StreamResult(fileConfig);
 			Source input = new DOMSource(document);
 			transformer.transform(input, output);
+			Log.getLogger().info("Настройки игры сохранены");
 		} catch (Exception e) {
 			Log.getLogger().log(Level.WARNING,"Ошабка при разборе настроек клиента",e);
 		}
