@@ -13,7 +13,10 @@ public abstract class RWAC {
 	/**
 	 * Проверка файлов
 	 */
-	public static boolean checkBeforeStart() {return false;}
+	public static boolean checkBeforeStart() {
+		if (Main.account.getServer().getProtocol().getRWACindex() == null) return true;
+		return false;
+	}
 	
 	public static boolean checkFiles(List<RWACIndexReader.RWACFile> files) {return false;}
 	/**
