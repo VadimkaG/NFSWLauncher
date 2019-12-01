@@ -3,6 +3,7 @@ package ru.vadimka.nfswlauncher.utils;
 import java.io.File;
 import java.util.List;
 
+import ru.vadimka.nfswlauncher.Main;
 import ru.vadimka.nfswlauncher.RWACIndexReader;
 
 /**
