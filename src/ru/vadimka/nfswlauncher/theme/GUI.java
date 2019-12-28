@@ -558,7 +558,7 @@ public class GUI extends JFrame implements GraphModule {
 			public void mouseClicked(MouseEvent e) {
 				String file = fileSelect(Config.GAME_PATH, false, GraphActions.getLocale().get("btn_select_game_folder"));
 				if (file == null) return;
-				gameStartFileField.setText(GraphActions.getLocale().get("btn_change_file_game")+"\n"+file);
+				gameStartFileField.setText(GraphActions.getLocale().get("btn_select_game_folder")+"\n"+file);
 				if (
 						!new File(file+File.separator+"nfsw.exe").exists()
 						&&
