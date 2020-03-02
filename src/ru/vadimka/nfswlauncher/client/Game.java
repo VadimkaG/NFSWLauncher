@@ -3,13 +3,18 @@ package ru.vadimka.nfswlauncher.client;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Field;
 import java.util.Map;
+import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.logging.Level;
 
 import ru.vadimka.nfswlauncher.AuthException;
 import ru.vadimka.nfswlauncher.Config;
 import ru.vadimka.nfswlauncher.Log;
 import ru.vadimka.nfswlauncher.Main;
+import ru.vadimka.nfswlauncher.ProcessUtils;
 import ru.vadimka.nfswlauncher.theme.GraphActions;
 import ru.vadimka.nfswlauncher.utils.DiscordController;
 
@@ -33,16 +38,18 @@ public class Game {
 			game = builder.start();
 			DiscordController.updateState("Играет на "+Main.account.getServer().getProtocol().get("SERVER_NAME"), "Игра запущена");
 			inputReader.start();
-			//Main.frame.setVisible(false);
+			
+			Timer timer = new Timer();
+			timer.schedule(renamerTask, 6000);
+			
 			if (Config.BACKGROUND_WORCK_DENY) Main.shutdown(0);
 			else Main.destroyGraphic();
 			new Thread(waitForGameStoped).start();
 		} catch (Exception e) {
-			//Main.createGraphic();
-			Log.getLogger().log(Level.WARNING,"Не возможно прочитать файл запуска. Закрытие лаунчера.",e);
+			Main.createGraphic();
+			Log.getLogger().log(Level.WARNING,"Не удалось запустить игру. Закрытие лаунчера.",e);
 			if (Main.frame != null) {
 				Main.frame.errorDialog("Во время запуска игры произошла ошибка\nПопробуйте перекачать игру", "Не удалось запустить игру");
-				//Main.frame.setVisible(true);
 				Main.frame.loadingComplite();
 			}
 		}
@@ -98,6 +105,10 @@ public class Game {
 			} catch (IOException e) {}
 		}
 	});
+	/**
+	 * Поулчить файл конфига игры
+	 * @return
+	 */
 	public static File getConfigFile() {
 		File gameConfig = null;
 		if (!Main.getPlatform().equalsIgnoreCase("Windows") && !Config.WINE_PREFIX.equalsIgnoreCase("")) {
@@ -127,8 +138,46 @@ public class Game {
 			gameConfig = new File(Main.getConfigDir()+File.separator+"Settings"+File.separator+"UserSettings.xml");
 		return gameConfig;
 	}
+	/**
+	 * Запущена ли игра
+	 * @return
+	 */
 	public boolean isAlive() {
 		if (game != null && game.isAlive()) return true;
 		else return false;
 	}
+	/**
+	 * Задача по переименовыванию окна игры
+	 * Поддерживается только Windows
+	 * TODO: Добавить поддержку других операционных систем
+	 */
+	private TimerTask renamerTask = new TimerTask() {
+		@Override
+		public void run() {
+			int leftLimit = 97;
+			int rightLimit = 122;
+			int targetStringLength = 10;
+			Random random = new Random();
+			StringBuilder buffer = new StringBuilder(targetStringLength);
+			for (int i = 0; i < targetStringLength; i++) {
+				int randomLimitedInt = leftLimit + (int) 
+				  (random.nextFloat() * (rightLimit - leftLimit + 1));
+				buffer.append((char) randomLimitedInt);
+			}
+			String windowTitle = "Racing World (AntiCheat-" + buffer.toString() + ")";
+			if (Main.getPlatform() == "Windows") {
+				try {
+					final Field f = game.getClass().getDeclaredField("handle");
+					f.setAccessible(true);
+					final long handle = f.getLong(game);
+					f.setAccessible(false);
+					ProcessUtils.renameTitle(windowTitle, handle);
+				}
+				catch (UnsatisfiedLinkError | IllegalArgumentException | IllegalAccessException | NoSuchFieldException | SecurityException e) {
+					Log.getLogger().log(Level.WARNING, "\u041e\u0448\u0438\u0431\u043a\u0430: \u041e\u0431\u043d\u0430\u0440\u0443\u0436\u0435\u043d\u0430 \u043f\u043e\u043f\u044b\u0442\u043a\u0430 \u043e\u0431\u0445\u043e\u0434\u0430 RWAC. \u0418\u0433\u0440\u0430 \u0443\u043d\u0438\u0447\u0442\u043e\u0436\u0435\u043d\u0430.", e);
+					game.destroy();
+				}
+			}
+		}
+	};
 }

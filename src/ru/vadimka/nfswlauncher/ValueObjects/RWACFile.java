@@ -100,6 +100,7 @@ public class RWACFile {
 			File dir = outFile.getParentFile(); 
 			if (!dir.exists() && !dir.mkdirs()) {
 				Log.getLogger().warning("Не удалось создать директорию \""+outFile.getParentFile().getAbsolutePath()+"\"");
+				return false;
 			}
 			if (!dir.canWrite() || (outFile.exists() && !outFile.canWrite())) {
 				Log.getLogger().warning("[RWAC] Внимание! Запись файла "+outFile.getAbsolutePath()+" прервана, так как отсутствуют права на запись.");
