@@ -24,14 +24,16 @@ public class InfoDialog {
 			"Разработчик лаунчера: Vadimka - vadik.golubeff@yandex.ru\n"+
 			"Автор дизайна: Ryan Cooper - Discord: Ryan Cooper (Cooperyan)#9057\n"+
 			"Что изменилось в этой версии:\n"+
-			"- Обновлен RacingWorld Anti-Cheat (RWAC)";
+			"- Обновлен RacingWorld Anti-Cheat (RWAC)\n"+
+			"- Исправлено условие определяющее версию анти-чита";
 		default:
 			return "Launcher version: "+Config.VERSION+"\n"+
 			"Design version: "+DESIGN_VERSION+"\n"+
 			"Launcher developer: Vadimka - vadik.golubeff@yandex.ru\n"+
 			"Design author: Ryan Cooper - Discord: Ryan Cooper (Cooperyan)#9057\n"+
 			"What has changed in this version:\n"+
-			"- Updated RacingWorld Anti-Cheat (RWAC)";
+			"- Updated RacingWorld Anti-Cheat (RWAC)\n"+
+			"- Fixed condition defining version of anti-cheat";
 		}
 	}
 	

@@ -13,7 +13,7 @@ import ru.vadimka.nfswlauncher.utils.ConfigUtils;
 
 public abstract class Config {
 	public static final String WINDOW_TITLE = "Racing World";
-	public static final String VERSION = "0.15.1";
+	public static final String VERSION = "0.15.2";
 	public static final String UPDATE_INFO_URL = "https://raw.githubusercontent.com/VadimkaG/NFSWlauncher/master/version.txt";
 	public static final String SERVERS_LIST_LINK = "https://raw.githubusercontent.com/VadimkaG/NFSWlauncher/master/server-list.xml";
 	public static final boolean MODE_LOG_FILE = true;

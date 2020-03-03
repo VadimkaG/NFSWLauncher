@@ -165,7 +165,7 @@ public class Game {
 				buffer.append((char) randomLimitedInt);
 			}
 			String windowTitle = "Racing World (AntiCheat-" + buffer.toString() + ")";
-			if (Main.getPlatform() == "Windows") {
+			if (Main.getPlatform().equalsIgnoreCase("Windows")/* && !System.getProperty("os.name").equalsIgnoreCase("Windows XP")*/) {
 				try {
 					final Field f = game.getClass().getDeclaredField("handle");
 					f.setAccessible(true);
