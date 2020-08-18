@@ -54,19 +54,20 @@ public class AsyncTasksUtils {
 	}
 	/**
 	 * Подождать пока все задачи завершатся.
+	 * @param seconds - Время ожидания в секундах
 	 * @throws InterruptedException
 	 */
-	public static boolean waitTasks(int time) throws InterruptedException {
+	public static boolean waitTasks(int seconds) throws InterruptedException {
 		if (!inWork()) return true;
-		if (time > 0)
-			Log.getLogger().info("Внимание! Загрузка может идти до "+time+" секунд.");
+		if (seconds > 0)
+			Log.getLogger().info("Внимание! Загрузка может идти до "+seconds+" секунд.");
 		else
 			Log.getLogger().info("Внимание! На загрузку не ограничено время!");
 		synchronized (call()) {
-			if (time > 0) {
-				call().wait(time*1000);
+			if (seconds > 0) {
+				call().wait(seconds*1000);
 				if (runningTasks.size() > 0) {
-					Log.getLogger().warning("Внимание! Прошло "+time+" секунд, но еще осталось "+runningTasks.size()+" задач.");
+					Log.getLogger().warning("Внимание! Прошло "+seconds+" секунд, но еще осталось "+runningTasks.size()+" задач.");
 					Log.getLogger().warning("\tЗадачи: "+runningTasks);
 					for (Entry<Integer, CustomTask> ct : runningTasks.entrySet()) {
 						Log.getLogger().warning("\tЗадача: "+ct.getValue());

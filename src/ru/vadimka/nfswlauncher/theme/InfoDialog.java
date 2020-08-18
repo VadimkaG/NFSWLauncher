@@ -24,16 +24,32 @@ public class InfoDialog {
 			"Разработчик лаунчера: Vadimka - vadik.golubeff@yandex.ru\n"+
 			"Автор дизайна: Ryan Cooper - Discord: Ryan Cooper (Cooperyan)#9057\n"+
 			"Что изменилось в этой версии:\n"+
-			"- Обновлен RacingWorld Anti-Cheat (RWAC)\n"+
-			"- Исправлено условие определяющее версию анти-чита";
+			"- Добавлен вывод лога игры в лог лаунчера\n"+
+			"- Добавлена кнопка очистки настроек лаунчера\n"+
+			"- Добавлен кэш серверов.\n"+
+			"  Теперь если онлайн список серверов будет не доступен\n"+
+			"  список серверов будет подгружен из сохраненного ранее списка.\n"+
+			"- В английском переводе добавлены некоторые фразы,\n"+
+			"  которые ранее не были переведены\n"+
+			"- Теперь WINE выводит отладку в лог лаунчера.\n"+
+			"- Обновлен RWAC. Теперь он перепроверяет файлы тщательнее.\n"+
+			"  Не шалите, играйте честно.";
 		default:
 			return "Launcher version: "+Config.VERSION+"\n"+
 			"Design version: "+DESIGN_VERSION+"\n"+
 			"Launcher developer: Vadimka - vadik.golubeff@yandex.ru\n"+
 			"Design author: Ryan Cooper - Discord: Ryan Cooper (Cooperyan)#9057\n"+
 			"What has changed in this version:\n"+
-			"- Updated RacingWorld Anti-Cheat (RWAC)\n"+
-			"- Fixed condition defining version of anti-cheat";
+			"- Added output of the game log to the launcher log\n"+
+			"- Added button that clears launcher settings\n"+
+			"- Added server cache.\n"+
+			"  Now if the online server list is not available\n"+
+			"  the list of servers will be loaded from a previously saved list.\n"+
+			"- In the English translation, some messages have been added,\n"+
+			"  that were not previously translated\n"+
+			"- Now WINE displays debugging in the launcher log.\n"+
+			"- Updated RWAC. Now he double-checks the files more carefully.\n"+
+			"  Don't be naughty, play fair";
 		}
 	}
 	

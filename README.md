@@ -10,3 +10,4 @@
  - [jna-4.4.0](https://github.com/java-native-access/jna)
  - [jsr305-3.0.2](https://github.com/mercyblitz/jsr)
  - [RWCryptoLib](https://github.com/VadimkaG/RWCryptoLib)
+ - RacingWorld AntiCheat

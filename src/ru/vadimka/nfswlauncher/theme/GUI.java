@@ -13,8 +13,6 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 import java.io.File;
 import java.net.URI;
 import java.util.List;
@@ -131,21 +129,13 @@ public class GUI extends JFrame implements GraphModule {
 		setSize(new Dimension(800, 510));
 		setTitle(Config.WINDOW_TITLE);
 		setLocationRelativeTo(null);
-//		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		addWindowListener(new WindowAdapter() {
-			@Override
-			public void windowClosing(WindowEvent e) {
-				Main.shutdown(0);
-				super.windowClosing(e);
-			}
-		});
+		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setUndecorated(true);
 		setResizable(false);
 		window = new JPanel();
 		window.setBorder(new EmptyBorder(5, 5, 5, 5));
 		setContentPane(window);
 		window.setLayout(null);
-		addWindowListener(new GUIWindowListener());
 		GUIMouseMovement MouseListener = new GUIMouseMovement(this,0,0,800,30);
 		addMouseListener(MouseListener);
 		addMouseMotionListener(MouseListener);
@@ -173,7 +163,7 @@ public class GUI extends JFrame implements GraphModule {
 		btnExit.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				Main.shutdown(0);
+				System.exit(0);
 			}
 		});
 		window.add(btnExit);
@@ -688,6 +678,16 @@ public class GUI extends JFrame implements GraphModule {
 		dynamic_background.setSelected(GraphActions.isDynamicBackground());
 		settingsPanel.add(dynamic_background);
 		
+		ButtonC btnClear = new ButtonC(GraphActions.getLocale().get("clear_settings"));
+		btnClear.setBounds(515, 390, 220, 30);
+		btnClear.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				GraphActions.clearLauncherSettings();
+			}
+		});
+		settingsPanel.add(btnClear);
+		
 		ButtonC btnSave = new ButtonC(GraphActions.getLocale().get("btn_client_settings_save"));
 		btnSave.setBounds(568, 437, 189, 39);
 		btnSave.addActionListener(new ActionListener() {
@@ -1046,7 +1046,7 @@ public class GUI extends JFrame implements GraphModule {
 			loadingComplite();
 		} catch (NullPointerException exn) {
 			errorDialog(GraphActions.getLocale().get("error_inner"), GraphActions.getLocale().get("auth_error_title"));
-			Log.getLogger().warning("Внутренняя ошибка авторизации, не удалось получить данные.");
+			Log.getLogger().log(Level.WARNING,"Внутренняя ошибка авторизации, не удалось получить данные.",exn);
 			//Log.getLogger().warning(exn.getStackTrace());
 			//Main.frame.changeWindow(Frame.WINDOW_LOGIN);
 			setLogin(false);

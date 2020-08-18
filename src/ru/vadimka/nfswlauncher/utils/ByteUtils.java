@@ -33,9 +33,11 @@ public class ByteUtils {
 		String data = "";
 		if (bytes.length < 1) return data;
 		for (int i = 0; i < bytes.length; i++) {
-			if (i != 0 && !raw) data += ", ";
-			if (i != 0 && i % 4 == 0) data += "\n";
-			if (!raw) data += "(byte) 0x";
+			if (!raw) {
+				if (i != 0) data += ", ";
+				if (i != 0 && i % 4 == 0) data += "\n";
+				data += "(byte) 0x";
+			}
 			data += Integer.toHexString((bytes[i] >> 4) & 0xf)+""+Integer.toHexString(bytes[i] & 0xf);
 		}
 		return data;

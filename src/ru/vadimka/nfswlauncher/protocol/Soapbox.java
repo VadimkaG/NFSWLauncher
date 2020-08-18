@@ -27,13 +27,13 @@ import ru.vadimka.nfswlauncher.AuthException;
 import ru.vadimka.nfswlauncher.Log;
 import ru.vadimka.nfswlauncher.Main;
 import ru.vadimka.nfswlauncher.ValueObjects.Account;
-import ru.vadimka.nfswlauncher.ValueObjects.RWACIndex;
 import ru.vadimka.nfswlauncher.ValueObjects.ServerVO;
+import ru.vadimka.nfswlauncher.anticheat.RWAC;
+import ru.vadimka.nfswlauncher.anticheat.RWACIndex;
 import ru.vadimka.nfswlauncher.client.Game;
 import ru.vadimka.nfswlauncher.client.GameStartException;
 import ru.vadimka.nfswlauncher.utils.HTTPRequest;
 import ru.vadimka.nfswlauncher.utils.HTTPRequest.Action;
-import ru.vadimka.nfswlauncher.utils.RWAC;
 
 public class Soapbox implements ServerInterface {
 	
@@ -72,7 +72,7 @@ public class Soapbox implements ServerInterface {
 					
 				} catch (IOException e) {
 					SERVER_ONLINE = false;
-					Log.getLogger().warning("Ошибка при попытке запинговать сервер "+VO.getName());
+					//Log.getLogger().warning("Ошибка при попытке запинговать сервер "+VO.getName());
 					if (conn != null)
 						conn.disconnect();
 				}
@@ -115,12 +115,12 @@ public class Soapbox implements ServerInterface {
 
 	@Override
 	public void login(Account acc) throws AuthException {
-		//if (!SERVER_ONLINE) throw new AuthException("Сервер не отвечает");
 		if (acc == null) return;
 		
 		if (acc.getLogin().equalsIgnoreCase("") || acc.getPassword().equalsIgnoreCase("")) {
-			throw new AuthException("Данные для авторизации пусты");
+			throw new AuthException(Main.locale.get("error_protocol_data_auth_empty"));
 		}
+		HTTPRequest.ActionAutoContainer response = new HTTPRequest.ActionAutoContainer();
 		HTTPRequest request = new HTTPRequest(
 				VO.getHttpLink()
 				+"/soapbox-race-core/Engine.svc/User/authenticateUser"
@@ -129,14 +129,16 @@ public class Soapbox implements ServerInterface {
 				+acc.getLogin()
 				+HTTPRequest.DELIMER
 				+"password="
-				+acc.getPassword()
+				+acc.getPassword(),
+				response
 			);
 		request.proc();
-		if (request.getResponseCode() == 200) {
-			String xml = request.getResponse();
+		request.waitResponse();
+		if (response.RESPONSE_CODE == 200) {
+			String xml = response.toString();
 			if (xml.equalsIgnoreCase("")) {
 				Log.getLogger().warning("Ошибка логина: Данные пришедшие от сервера пусты....");
-				throw new AuthException("Не удалось разобрать ответ от сервера... Данные пришедшие от сервера пусты");
+				throw new AuthException(Main.locale.get("error_protocol_server_data_empty"));
 			}
 			DocumentBuilderFactory dcFactory = DocumentBuilderFactory.newInstance();
 			DocumentBuilder dcBuilder;
@@ -146,11 +148,14 @@ public class Soapbox implements ServerInterface {
 				acc.login(doc.getElementsByTagName("UserId").item(0).getTextContent(), doc.getElementsByTagName("LoginToken").item(0).getTextContent());
 			} catch (Exception e) {
 				Log.getLogger().warning("Ошибка логина: Не удалось разобрать данные в ответе. Ответ: "+xml);
-				throw new AuthException("Не удалось разобрать ответ от сервера..."+e.getMessage());
+				throw new AuthException(Main.locale.get("error_protocol_server_data_error")+" "+e.getMessage());
 			}
+		} else if (response.RESPONSE_CODE == 0) {
+			Log.getLogger().warning("Ошибка чтения ответа от сервера: Сервер не отвечает");
+			throw new AuthException(Main.locale.get("error_protocol_server_not_response"));
 		} else {
 			try {
-				String xml = request.getError();
+				String xml = response.toString();
 				InputSource source = new InputSource(new StringReader(xml));
 				DocumentBuilder documentBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
 				Document document = documentBuilder.parse(source);
@@ -164,38 +169,40 @@ public class Soapbox implements ServerInterface {
 				}
 			} catch (ParserConfigurationException e) {
 				Log.getLogger().warning("Ошибка парсинга ответа от сервера (ошибки)");
-				throw new AuthException("Ошибка при разборе полученных данных от сервера.");
+				throw new AuthException(Main.locale.get("error_protocol_server_data_error"));
 			} catch (SAXException e) {
 				Log.getLogger().warning("Ошибка синтаксиса ответа от сервера (ошибки)");
-				throw new AuthException("Ошибка при разборе полученных данных от сервера.");
+				throw new AuthException(Main.locale.get("error_protocol_server_data_error"));
 			} catch (IOException e) {
 				Log.getLogger().warning("Ошибка чтения ответа от сервера (ошибки)");
-				throw new AuthException("Ошибка при разборе полученных данных от сервера.");
+				throw new AuthException(Main.locale.get("error_protocol_server_data_error"));
 			}
 		}
 	}
 
 	@Override
 	public void register(String login, String password) throws AuthException {
-		if (!SERVER_ONLINE) throw new AuthException("Сервер не отвечает");
 		if (login.length() < 2 || !EmailValidate(login)) {
 			Log.getLogger().warning("Ошибка регистрации: Email введен не верно!");
 			throw new AuthException(Main.locale.get("msg_reg_error_email"));
 		}
-		
-		String URL = VO.getHttpLink()
+		HTTPRequest.ActionAutoContainer response = new HTTPRequest.ActionAutoContainer();
+		HTTPRequest request = new HTTPRequest(
+				VO.getHttpLink()
 				+"/soapbox-race-core/Engine.svc/User/createUser"
 				+HTTPRequest.DELIMER_FIRST
 				+"email="
 				+login
 				+HTTPRequest.DELIMER
 				+"password="
-				+password;
-		HTTPRequest request = new HTTPRequest(URL);
+				+password,
+				response
+			);
 		request.proc();
-		if (request.getResponseCode() != 200) {
+		request.waitResponse();
+		if (response.RESPONSE_CODE == 200) {
 			try {
-				String xml = request.getError();
+				String xml = response.toString();
 				InputSource source = new InputSource(new StringReader(xml));
 				DocumentBuilder documentBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
 				Document document = documentBuilder.parse(source);
@@ -209,13 +216,40 @@ public class Soapbox implements ServerInterface {
 				}
 			} catch (ParserConfigurationException e) {
 				Log.getLogger().warning("Ошибка парсинга ответа от сервера (ошибки)");
-				throw new AuthException("Ошибка при разборе данных с сервера");
+				throw new AuthException(Main.locale.get("error_protocol_server_data_error"));
 			} catch (SAXException e) {
 				Log.getLogger().warning("Ошибка синтаксиса ответа от сервера (ошибки)");
-				throw new AuthException("Ошибка при разборе данных с сервера");
+				throw new AuthException(Main.locale.get("error_protocol_server_data_error"));
 			} catch (IOException e) {
 				Log.getLogger().warning("Ошибка чтения ответа от сервера (ошибки)");
-				throw new AuthException("Ошибка при разборе данных с сервера");
+				throw new AuthException(Main.locale.get("error_protocol_server_data_error"));
+			}
+		} else if (response.RESPONSE_CODE == 0) {
+			Log.getLogger().warning("Ошибка чтения ответа от сервера: Сервер не отвечает");
+			throw new AuthException(Main.locale.get("error_protocol_server_not_response"));
+		} else {
+			try {
+				String xml = response.toString();
+				InputSource source = new InputSource(new StringReader(xml));
+				DocumentBuilder documentBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+				Document document = documentBuilder.parse(source);
+				Node Root = document.getDocumentElement();
+				NodeList items = Root.getChildNodes();
+				for (int i = 0; i < items.getLength(); i++) {
+					Node item = items.item(i);
+					if (item.getNodeName().equalsIgnoreCase("description")) {
+						throw new AuthException(item.getTextContent());
+					}
+				}
+			} catch (ParserConfigurationException e) {
+				Log.getLogger().warning("Ошибка парсинга ответа от сервера (ошибки)");
+				throw new AuthException(Main.locale.get("error_protocol_server_data_error"));
+			} catch (SAXException e) {
+				Log.getLogger().warning("Ошибка синтаксиса ответа от сервера (ошибки)");
+				throw new AuthException(Main.locale.get("error_protocol_server_data_error"));
+			} catch (IOException e) {
+				Log.getLogger().warning("Ошибка чтения ответа от сервера (ошибки)");
+				throw new AuthException(Main.locale.get("error_protocol_server_data_error"));
 			}
 		}
 	}
@@ -289,7 +323,6 @@ public class Soapbox implements ServerInterface {
 						
 						if (jo.containsKey("rwacallow") && ((boolean)jo.get("rwacallow")) == true) {
 							RWACindex = new RWACIndex(
-//								"https://www.dropbox.com/s/q0enm212ux5bdc8/FilesChecker.xml?dl=1"
 								VO.getHttpLink()+"/soapbox-race-core/fileschecker"
 									);
 							RWACindex.download();
@@ -313,7 +346,7 @@ public class Soapbox implements ServerInterface {
 
 		request.proc();
 		
-		request.waitRequest();
+		request.waitResponse();
 		
 		return this;
 	}

@@ -2,7 +2,7 @@ package ru.vadimka.nfswlauncher.protocol;
 
 import ru.vadimka.nfswlauncher.AuthException;
 import ru.vadimka.nfswlauncher.ValueObjects.Account;
-import ru.vadimka.nfswlauncher.ValueObjects.RWACIndex;
+import ru.vadimka.nfswlauncher.anticheat.RWACIndex;
 import ru.vadimka.nfswlauncher.client.GameStartException;
 
 public interface ServerInterface {

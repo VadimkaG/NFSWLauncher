@@ -23,6 +23,13 @@ public class ServerVO {
 		return IP;
 	}
 	/**
+	 * Использует ли сервер https протокол
+	 * @return true = https false = http
+	 */
+	public boolean isHttps() {
+		return HTTPS;
+	}
+	/**
 	 * Получить IP вместе с HTTP
 	 */
 	public String getHttpLink() {

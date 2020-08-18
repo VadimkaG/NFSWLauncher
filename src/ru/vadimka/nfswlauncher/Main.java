@@ -23,10 +23,10 @@ import javax.swing.plaf.FontUIResource;
 import ru.vadimka.nfswlauncher.ValueObjects.Account;
 import ru.vadimka.nfswlauncher.ValueObjects.ServerVO;
 import ru.vadimka.nfswlauncher.client.Game;
-//import ru.vadimka.nfswlauncher.protocol.RacingWorld;
+import ru.vadimka.nfswlauncher.protocol.RacingWorld;
 import ru.vadimka.nfswlauncher.protocol.ServerInterface;
 import ru.vadimka.nfswlauncher.protocol.Soapbox;
-//import ru.vadimka.nfswlauncher.protocol.SoapboxLocked;
+import ru.vadimka.nfswlauncher.protocol.SoapboxLocked;
 import ru.vadimka.nfswlauncher.theme.GUI;
 import ru.vadimka.nfswlauncher.theme.GUIResourseLoader;
 import ru.vadimka.nfswlauncher.theme.GraphActions;
@@ -61,6 +61,13 @@ public abstract class Main {
 				fastJoin = true;
 			}
 		}
+		Runtime.getRuntime().addShutdownHook(new Thread() {
+			@Override
+			public void run() {
+				if (game != null && !game.succesStarted()) game.killGame();
+				DiscordController.shutdown();
+			}
+		});
 		if (fastJoin == false || !rawLauncher())
 			init(autoauth,showChangelog);
 	}
@@ -130,16 +137,14 @@ public abstract class Main {
 			createGraphic();
 			Log.getLogger().info("Загрузка окна завершена.");
 			
-			
 			Log.getLogger().info("Инициализация сохраненного аккаунта...");
+			account = new Account(new ServerVO(Config.SERVER_LINK, Config.SERVER_NAME,false), Config.USER_LOGIN, Config.USER_PASSWORD);
+			account.getServer().setProtocol(genProtocolByName(Config.SERVER_PROTOCOL, account.getServer()));
 			try {
-				account = new Account(new ServerVO(Config.SERVER_LINK, Config.SERVER_NAME,false), Config.USER_LOGIN, Config.USER_PASSWORD);
-				account.getServer().setProtocol(genProtocolByName(Config.SERVER_PROTOCOL, account.getServer()));
 				if (autoauth && !account.getLogin().equalsIgnoreCase("") && !account.getServer().getIP().equalsIgnoreCase("")) {
 					account.getServer().getProtocol().login(account);
 					account.getServer().getProtocol().getResponse();
 					Log.getLogger().info("Авторизация успешна. login: "+account.getLogin());
-					//frame.changeWindow(Frame.WINDOW_MAIN);
 					frame.setLogin(true);
 				} else {
 					if (account != null && account.getServer().getProtocol() != null)
@@ -147,7 +152,7 @@ public abstract class Main {
 					frame.updateServers(GraphActions.getServerList());
 					frame.setLogin(false);
 				}
-			} catch (Exception e) {
+			} catch (AuthException e) {
 				frame.updateServers(GraphActions.getServerList());
 				frame.setLogin(false);
 			}
@@ -202,10 +207,10 @@ public abstract class Main {
 	 */
 	public static ServerInterface genProtocolByName(String name, ServerVO vo) {
 		switch(name.trim()) {
-//		case "soapbox-Locked":
-//			return new SoapboxLocked(vo);
-//		case "RacingWorld":
-//			return new RacingWorld(vo);
+		case "soapbox-Locked":
+			return new SoapboxLocked(vo);
+		case "RacingWorld":
+			return new RacingWorld(vo);
 		default:
 			return new Soapbox(vo);
 		}
@@ -215,9 +220,11 @@ public abstract class Main {
 	 * @return
 	 */
 	public static boolean checkUpdate() {
-		HTTPRequest request = new HTTPRequest(Config.UPDATE_INFO_URL);
+		HTTPRequest.ActionAutoContainer response = new HTTPRequest.ActionAutoContainer();
+		HTTPRequest request = new HTTPRequest(Config.UPDATE_INFO_URL,response);
 		request.proc();
-		String result = request.getResponse();
+		request.waitResponse();
+		String result = response.toString();
 		if (result != null) {
 			String[] info = result.split(";");
 			if (info.length >= 2) {
@@ -325,7 +332,7 @@ public abstract class Main {
 		} catch (Exception e) {
 			Log.getLogger().warning("Ошибка: Не удалось перезапустить лаунчер. "+e.getLocalizedMessage());
 		}
-		shutdown(0);
+		System.exit(0);
 	}
 	/**
 	 * Получить рабочую директорию лаунчера
@@ -365,14 +372,6 @@ public abstract class Main {
 	 */
 	public static String getSystemLanguage() {
 		return System.getProperty("user.language");
-	}
-	/**
-	 * Завершение работы лаунчера
-	 * @param i - код лаунчера
-	 */
-	public static void shutdown(int i) {
-		DiscordController.shutdown();
-		System.exit(i);
 	}
 	/**
 	 * Кэш платформы. Чтобы не проверять ее каждый раз
