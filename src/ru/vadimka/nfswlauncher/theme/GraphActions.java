@@ -114,7 +114,7 @@ public class GraphActions {
 				
 				if (custom_servers.exists() && custom_servers.canRead()) {
 					DocumentBuilder documentBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-					Document document = documentBuilder.parse(custom_servers.getAbsolutePath());
+					Document document = documentBuilder.parse("file:///"+custom_servers.getAbsolutePath());
 					
 					Element Servers = document.getDocumentElement();
 					NodeList items = Servers.getChildNodes();
@@ -438,7 +438,7 @@ public class GraphActions {
 			try {
 				DocumentBuilder documentBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
 				Document document;
-				document = documentBuilder.parse(fileConfig.getAbsolutePath());
+				document = documentBuilder.parse("file:///"+fileConfig.getAbsolutePath());
 				Node Root = document.getDocumentElement();
 				NodeList items = Root.getChildNodes();
 				for (int i = 0; i < items.getLength(); i++) {
@@ -487,7 +487,7 @@ public class GraphActions {
 		try {
 			DocumentBuilder documentBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
 			Document document;
-			document = documentBuilder.parse(fileConfig.getAbsolutePath());
+			document = documentBuilder.parse("file:///"+fileConfig.getAbsolutePath());
 			Node Root = document.getDocumentElement();
 			NodeList items = Root.getChildNodes();
 			for (int i = 0; i < items.getLength(); i++) {

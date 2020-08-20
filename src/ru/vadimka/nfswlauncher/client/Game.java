@@ -120,10 +120,12 @@ public class Game {
 		Logger l = Log.getLogger();
 		while (game.isAlive()) {
 			try {
-				//l.info("[GameLog] "+ new String(is.readAllBytes(),StandardCharsets.UTF_8));
-				String line = br.readLine();
-				if (line != null)
-					l.info("[GameLog] "+ br.readLine());
+				if (br.ready()) {
+					String line = br.readLine();
+					//String line = new String(is.readAllBytes(),StandardCharsets.UTF_8);
+					if (line != null)
+						l.info("[GameLog] "+ line);
+				}
 			} catch (IOException e) {}
 		}
 	});
@@ -136,10 +138,12 @@ public class Game {
 		Logger l = Log.getLogger();
 		while (game.isAlive()) {
 			try {
-				//l.info("[GameLog] "+ new String(is.readAllBytes(),StandardCharsets.UTF_8));
-				String line = br.readLine();
-				if (line != null)
-					l.info("[GameLogError] "+ br.readLine());
+				if (br.ready()) {
+					String line = br.readLine();
+					//String line = new String(is.readAllBytes(),StandardCharsets.UTF_8);
+					if (line != null)
+						l.info("[GameLogError] "+ line);
+				}
 			} catch (IOException e) {}
 		}
 	});

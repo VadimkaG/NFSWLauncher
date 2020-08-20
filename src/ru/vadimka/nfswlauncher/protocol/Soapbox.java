@@ -146,8 +146,14 @@ public class Soapbox implements ServerInterface {
 				dcBuilder = dcFactory.newDocumentBuilder();
 				Document doc = dcBuilder.parse(new InputSource(new StringReader(xml)));
 				acc.login(doc.getElementsByTagName("UserId").item(0).getTextContent(), doc.getElementsByTagName("LoginToken").item(0).getTextContent());
-			} catch (Exception e) {
-				Log.getLogger().warning("Ошибка логина: Не удалось разобрать данные в ответе. Ответ: "+xml);
+			} catch (ParserConfigurationException e) {
+				Log.getLogger().log(Level.WARNING,"Ошибка парсинга ответа от сервера",e);
+				throw new AuthException(Main.locale.get("error_protocol_server_data_error")+" "+e.getMessage());
+			}catch (SAXException e) {
+				Log.getLogger().log(Level.WARNING,"Ошибка синтаксиса ответа от сервера",e);
+				throw new AuthException(Main.locale.get("error_protocol_server_data_error")+" "+e.getMessage());
+			} catch (IOException e) {
+				Log.getLogger().log(Level.WARNING,"Ошибка логина: Ошибка чтения ответа от сервера",e);
 				throw new AuthException(Main.locale.get("error_protocol_server_data_error")+" "+e.getMessage());
 			}
 		} else if (response.RESPONSE_CODE == 0) {
@@ -168,13 +174,13 @@ public class Soapbox implements ServerInterface {
 					}
 				}
 			} catch (ParserConfigurationException e) {
-				Log.getLogger().warning("Ошибка парсинга ответа от сервера (ошибки)");
+				Log.getLogger().log(Level.WARNING,"Ошибка парсинга ответа от сервера (ошибки)",e);
 				throw new AuthException(Main.locale.get("error_protocol_server_data_error"));
 			} catch (SAXException e) {
-				Log.getLogger().warning("Ошибка синтаксиса ответа от сервера (ошибки)");
+				Log.getLogger().log(Level.WARNING,"Ошибка синтаксиса ответа от сервера (ошибки)",e);
 				throw new AuthException(Main.locale.get("error_protocol_server_data_error"));
 			} catch (IOException e) {
-				Log.getLogger().warning("Ошибка чтения ответа от сервера (ошибки)");
+				Log.getLogger().log(Level.WARNING,"Ошибка чтения ответа от сервера (ошибки)",e);
 				throw new AuthException(Main.locale.get("error_protocol_server_data_error"));
 			}
 		}
@@ -215,13 +221,13 @@ public class Soapbox implements ServerInterface {
 					}
 				}
 			} catch (ParserConfigurationException e) {
-				Log.getLogger().warning("Ошибка парсинга ответа от сервера (ошибки)");
+				Log.getLogger().log(Level.WARNING,"Ошибка парсинга ответа от сервера",e);
 				throw new AuthException(Main.locale.get("error_protocol_server_data_error"));
 			} catch (SAXException e) {
-				Log.getLogger().warning("Ошибка синтаксиса ответа от сервера (ошибки)");
+				Log.getLogger().log(Level.WARNING,"Ошибка синтаксиса ответа от сервера",e);
 				throw new AuthException(Main.locale.get("error_protocol_server_data_error"));
 			} catch (IOException e) {
-				Log.getLogger().warning("Ошибка чтения ответа от сервера (ошибки)");
+				Log.getLogger().log(Level.WARNING,"Ошибка чтения ответа от сервера",e);
 				throw new AuthException(Main.locale.get("error_protocol_server_data_error"));
 			}
 		} else if (response.RESPONSE_CODE == 0) {
@@ -242,13 +248,13 @@ public class Soapbox implements ServerInterface {
 					}
 				}
 			} catch (ParserConfigurationException e) {
-				Log.getLogger().warning("Ошибка парсинга ответа от сервера (ошибки)");
+				Log.getLogger().log(Level.WARNING,"Ошибка парсинга ответа от сервера (ошибки)",e);
 				throw new AuthException(Main.locale.get("error_protocol_server_data_error"));
 			} catch (SAXException e) {
-				Log.getLogger().warning("Ошибка синтаксиса ответа от сервера (ошибки)");
+				Log.getLogger().log(Level.WARNING,"Ошибка синтаксиса ответа от сервера (ошибки)",e);
 				throw new AuthException(Main.locale.get("error_protocol_server_data_error"));
 			} catch (IOException e) {
-				Log.getLogger().warning("Ошибка чтения ответа от сервера (ошибки)");
+				Log.getLogger().log(Level.WARNING,"Ошибка чтения ответа от сервера (ошибки)",e);
 				throw new AuthException(Main.locale.get("error_protocol_server_data_error"));
 			}
 		}

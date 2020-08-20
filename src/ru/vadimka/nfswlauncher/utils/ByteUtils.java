@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.logging.Level;
 
 import ru.vadimka.nfswlauncher.Log;
 
@@ -18,8 +19,12 @@ public class ByteUtils {
 		int len = str.length();
 		byte[] data = new byte[len / 2];
 		for (int i = 0; i < len; i += 2) {
-		data[i / 2] = (byte) ((Character.digit(str.charAt(i), 16) << 4)
-				+ Character.digit(str.charAt(i+1), 16));
+			try {
+				data[i / 2] = (byte) ((Character.digit(str.charAt(i), 16) << 4)
+						+ Character.digit(str.charAt(i+1), 16));
+			} catch (StringIndexOutOfBoundsException e) {
+				Log.getLogger().log(Level.WARNING,"Ошибка, при попытке переконвертировать hex строку в байты",e);
+			}
 		}
 		return data;
 	}
