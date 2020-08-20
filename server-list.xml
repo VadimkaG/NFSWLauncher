@@ -4,6 +4,10 @@
     protocol="soapbox"
     >World Evolved</server>
   <server
+    ip="92.63.111.195:8680"
+    protocol="soapbox"
+    >World Evolved - test</server>
+  <server
     ip="180.97.28.12:8680"
     protocol="soapbox"
     >Zesty's Server</server>
