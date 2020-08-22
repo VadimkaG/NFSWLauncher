@@ -493,7 +493,6 @@ public class GUI extends JFrame implements GraphModule {
 		mainPanel.add(aboutBlock);
 		//*/
 		
-		
 		//*
 		// Настройки TODO
 		settingsPanel = new JPanel();
@@ -510,8 +509,13 @@ public class GUI extends JFrame implements GraphModule {
 		lblSettings.setBounds(100, 55, 153, 39);
 		settingsPanel.add(lblSettings);
 		
+		JLabel lblLauncherLang = new JLabel(GraphActions.getLocale().get("launcher_language"));
+		lblLauncherLang.setForeground(Color.WHITE);
+		lblLauncherLang.setBounds(523, 135, 189, 20);
+		settingsPanel.add(lblLauncherLang);
+		
 		langField = new JComboBox<Locale>();
-		langField.setBounds(523, 190, 189, 20);
+		langField.setBounds(523, 160, 189, 20);
 		langField.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
@@ -534,7 +538,7 @@ public class GUI extends JFrame implements GraphModule {
 		doc.setParagraphAttributes(0, doc.getLength(), center, false);
 		gameStartFileField.setFont(gameStartFileField.getFont().deriveFont(10f));
 		gameStartFileField.setText(GraphActions.getLocale().get("btn_select_game_folder")+"\n"+Config.GAME_PATH);
-		gameStartFileField.setBounds(523, 221, 189, 59);
+		gameStartFileField.setBounds(523, 185, 189, 59);
 		gameStartFileField.addMouseListener(new MouseListener() {
 			@Override
 			public void mouseReleased(MouseEvent e) {}
@@ -560,22 +564,17 @@ public class GUI extends JFrame implements GraphModule {
 			}
 		});
 		
-		JLabel lblLauncherLang = new JLabel(GraphActions.getLocale().get("launcher_language"));
-		lblLauncherLang.setForeground(Color.WHITE);
-		lblLauncherLang.setBounds(523, 165, 189, 20);
-		settingsPanel.add(lblLauncherLang);
-		
 		settingsPanel.add(gameStartFileField);
 		
 		ClientSettings cset = GraphActions.getGameSettings();
 		
 		JLabel lblClientLang = new JLabel(GraphActions.getLocale().get("msg_client_language"));
 		lblClientLang.setForeground(Color.WHITE);
-		lblClientLang.setBounds(152, 165, 189, 17);
+		lblClientLang.setBounds(152, 135, 189, 17);
 		settingsPanel.add(lblClientLang);
 		
 		JComboBox<ClientLocale> clientLangField = new JComboBox<ClientLocale>();
-		clientLangField.setBounds(152, 187, 189, 20);
+		clientLangField.setBounds(152, 160, 189, 20);
 		settingsPanel.add(clientLangField);
 		
 		ClientLocale cl = ClientLocale.getById(cset.getLanguage());
@@ -591,12 +590,12 @@ public class GUI extends JFrame implements GraphModule {
 		
 		JLabel lblSoundMode = new JLabel(GraphActions.getLocale().get("msg_client_audiomode"));
 		lblSoundMode.setForeground(Color.WHITE);
-		lblSoundMode.setBounds(152, 211, 189, 17);
+		lblSoundMode.setBounds(152, 191, 189, 17);
 		settingsPanel.add(lblSoundMode);
 		
 		
 		JComboBox<ComboboxString<Boolean>> soundModeField = new JComboBox<ComboboxString<Boolean>>();
-		soundModeField.setBounds(152, 230, 189, 20);
+		soundModeField.setBounds(152, 210, 189, 20);
 		settingsPanel.add(soundModeField);
 		
 		if (cset.getAudiomode()) {
@@ -610,17 +609,17 @@ public class GUI extends JFrame implements GraphModule {
 		JCheckBox smoothSoundField = new JCheckBox(GraphActions.getLocale().get("msg_client_audioquality"));
 		smoothSoundField.setForeground(Color.WHITE);
 		smoothSoundField.setOpaque(false);
-		smoothSoundField.setBounds(152, 257, 250, 23);
+		smoothSoundField.setBounds(148, 237, 250, 23);
 		smoothSoundField.setSelected(cset.getAudioquality());
 		settingsPanel.add(smoothSoundField);
 		
 		JLabel lblBrithness = new JLabel(GraphActions.getLocale().get("msg_client_brightness"));
 		lblBrithness.setForeground(Color.WHITE);
-		lblBrithness.setBounds(152, 287, 189, 17);
+		lblBrithness.setBounds(150, 267, 189, 17);
 		settingsPanel.add(lblBrithness);
 		
 		JSlider brithnessField = new JSlider();
-		brithnessField.setBounds(152, 304, 189, 26);
+		brithnessField.setBounds(152, 284, 189, 26);
 		brithnessField.setOpaque(false);
 		settingsPanel.add(brithnessField);
 		
@@ -628,11 +627,11 @@ public class GUI extends JFrame implements GraphModule {
 		
 		JLabel lblGraphic = new JLabel(GraphActions.getLocale().get("msg_client_performance"));
 		lblGraphic.setForeground(Color.WHITE);
-		lblGraphic.setBounds(152, 341, 189, 17);
+		lblGraphic.setBounds(152, 321, 189, 17);
 		settingsPanel.add(lblGraphic);
 		
 		JComboBox<PerformanceLevel> graphicField = new JComboBox<PerformanceLevel>();
-		graphicField.setBounds(152, 358, 189, 20);
+		graphicField.setBounds(152, 340, 189, 20);
 		settingsPanel.add(graphicField);
 		
 		PerformanceLevel cg = PerformanceLevel.getById(cset.getPerformancelevel());
@@ -646,7 +645,7 @@ public class GUI extends JFrame implements GraphModule {
 		JCheckBox vsyncField = new JCheckBox(GraphActions.getLocale().get("msg_client_vsync"));
 		vsyncField.setForeground(Color.WHITE);
 		vsyncField.setOpaque(false);
-		vsyncField.setBounds(152, 385, 275, 23);
+		vsyncField.setBounds(148, 375, 275, 23);
 		vsyncField.setSelected(cset.getVsync());
 		settingsPanel.add(vsyncField);
 		
@@ -656,6 +655,20 @@ public class GUI extends JFrame implements GraphModule {
 		checkBox.setOpaque(false);
 		checkBox.setSelected(GraphActions.getBackgroundWork());
 		settingsPanel.add(checkBox);
+		
+		JCheckBox settings_rserver_enable = new JCheckBox("<html><body>Перехватывать запросы</body></html>");
+		settings_rserver_enable.setForeground(Color.WHITE);
+		settings_rserver_enable.setBounds(515, 250, 220, 30);
+		settings_rserver_enable.setOpaque(false);
+		settings_rserver_enable.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				GraphActions.rserver(settings_rserver_enable.isSelected());
+			}
+		});
+		settings_rserver_enable.setEnabled(false);
+		settingsPanel.add(settings_rserver_enable);
 		
 		JCheckBox dont_update = new JCheckBox("<html><body>"+GraphActions.getLocale().get("update_check")+"</body></html>");
 		dont_update.setForeground(Color.WHITE);

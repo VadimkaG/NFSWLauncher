@@ -9,7 +9,7 @@ import javax.swing.BoxLayout;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JTextPane;
+import javax.swing.JTextArea;
 import javax.swing.border.EmptyBorder;
 
 import ru.vadimka.nfswlauncher.Config;
@@ -20,8 +20,8 @@ public class LogWindow extends JFrame {
 	private static final long serialVersionUID = -4700918479395886619L;
 	
 	private JPanel contentPane;
-	private JTextPane descriptionPane;
-	private static JTextPane logText;
+	private JTextArea descriptionPane;
+	private static JTextArea logText;
 
 	/**
 	 * Launch the application.
@@ -51,11 +51,11 @@ public class LogWindow extends JFrame {
 		setContentPane(contentPane);
 		contentPane.setLayout(new BoxLayout(contentPane, BoxLayout.Y_AXIS));
 		
-		descriptionPane = new JTextPane();
+		descriptionPane = new JTextArea();
 		descriptionPane.setEditable(false);
 		contentPane.add(descriptionPane);
 		
-		logText = new JTextPane();
+		logText = new JTextArea();
 		logText.setEditable(false);
 		contentPane.add(logText);
 		

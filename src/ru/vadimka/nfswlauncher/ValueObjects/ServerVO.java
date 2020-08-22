@@ -1,10 +1,11 @@
 package ru.vadimka.nfswlauncher.ValueObjects;
 
 import ru.vadimka.nfswlauncher.protocol.ServerInterface;
+import ru.vadimka.nfswlauncher.rserver.RedirectServer;
 
 public class ServerVO {
 	private String IP;
-	private String redirIP;
+	private RedirectServer redirServer;
 	private String NAME;
 	private boolean HTTPS;
 	private ServerInterface PROTOCOL;
@@ -12,7 +13,7 @@ public class ServerVO {
 	public ServerVO(String ip, String name, boolean isHttps) {
 		IP = ip;
 		NAME = name;
-		redirIP = null;
+		redirServer = null;
 		HTTPS = isHttps;
 	}
 	/**
@@ -40,25 +41,26 @@ public class ServerVO {
 	 * Получить редирект IP вместе с HTTP
 	 */
 	public String getRedirrectedHttpLink() {
-		String ip = IP;
-		if (redirIP != null) ip = redirIP;
-		if (HTTPS) return "https://"+ip;
-		else return "http://"+ip;
+		if (HTTPS) return "https://"+getRedirrectedIP();
+		else return "http://"+getRedirrectedIP();
 	}
 	/**
 	 * Получить IP сервера
 	 * @return String
 	 */
 	public String getRedirrectedIP() {
-		if (redirIP == null) return IP;
-		else return redirIP;
+		if (redirServer == null) return getIP();
+		else return redirServer.getIP();
 	}
 	/**
 	 * Установить редиррект
 	 * @param ip - куда редирректить
 	 */
-	public void setRedirrect(String ip) {
-		redirIP = ip;
+	public void setRedirrect(int port) {
+		redirServer = new RedirectServer(port,getIP());
+	}
+	public RedirectServer getRedirectServer() {
+		return redirServer;
 	}
 	/**
 	 * Получить название сервера

@@ -352,7 +352,7 @@ public class GraphActions {
 						return;
 					}
 					Config.saveWineConfig(WinePath, WinePrefix);
-					Main.frame.infoDialog(Main.locale.get("msg_wine_info_2").replace("\\n", "\n"), Main.locale.get("launch_error_title"));
+					Main.frame.infoDialog(Main.locale.get("msg_wine_info_3").replace("\\n", "\n"), Main.locale.get("launch_error_title"));
 				} else
 					Log.getLogger().info("Запуск игры в режиме wine...");
 			} else if (!Main.getPlatform().equalsIgnoreCase("Windows")) {
@@ -580,5 +580,8 @@ public class GraphActions {
 	 */
 	public static boolean isDynamicBackground() {
 		return Config.IS_DYNAMIC_BACKGROUND;
+	}
+	public static void rserver(boolean enable) {
+		Config.USE_REDIRECT = enable;
 	}
 }

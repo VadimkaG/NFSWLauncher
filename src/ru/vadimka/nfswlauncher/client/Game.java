@@ -32,6 +32,8 @@ public class Game {
 		try {
 			if (Main.frame != null)
 				Main.frame.loading();
+			if (Config.USE_REDIRECT)
+				Main.account.getServer().getRedirectServer().start();
 			ProcessBuilder builder;
 			if (Config.WINE_PATH.equalsIgnoreCase("")) {
 				builder = new ProcessBuilder(gamePath, Main.getSystemLanguage().toUpperCase(), serverEnginePath, token, userId);
@@ -49,8 +51,7 @@ public class Game {
 						+" \""+serverEnginePath+"\" "
 						+token+" "
 						+userId
-					);
-				Main.shutdown(0);*/
+					);*/
 			}
 			Log.getLogger().info("Запуск игры и скрытие GUI лаунчера...");
 			game = builder.start();
@@ -80,6 +81,8 @@ public class Game {
 			int exitCode;
 			try {
 				exitCode = game.waitFor();
+				if (Config.USE_REDIRECT)
+					Main.account.getServer().getRedirectServer().stop();
 				if (exitCode != 0) {
 					Main.createGraphic();
 					Log.getLogger().warning("Игра завершилась не правильно. Код завершения: "+exitCode);
@@ -120,13 +123,15 @@ public class Game {
 		Logger l = Log.getLogger();
 		while (game.isAlive()) {
 			try {
-				if (br.ready()) {
-					String line = br.readLine();
-					//String line = new String(is.readAllBytes(),StandardCharsets.UTF_8);
-					if (line != null)
-						l.info("[GameLog] "+ line);
-				}
-			} catch (IOException e) {}
+				String line = br.readLine();
+				//String line = new String(is.readAllBytes(),StandardCharsets.UTF_8);
+				if (line != null)
+					l.info("[GameLog] "+ line);
+				Thread.sleep(120);
+			} catch (IOException e) {
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 		}
 	});
 	/**
@@ -138,13 +143,15 @@ public class Game {
 		Logger l = Log.getLogger();
 		while (game.isAlive()) {
 			try {
-				if (br.ready()) {
-					String line = br.readLine();
-					//String line = new String(is.readAllBytes(),StandardCharsets.UTF_8);
-					if (line != null)
-						l.info("[GameLogError] "+ line);
-				}
-			} catch (IOException e) {}
+				String line = br.readLine();
+				//String line = new String(is.readAllBytes(),StandardCharsets.UTF_8);
+				if (line != null)
+					l.info("[GameLogError] "+ line);
+				Thread.sleep(120);
+			} catch (IOException e) {
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 		}
 	});
 	/**

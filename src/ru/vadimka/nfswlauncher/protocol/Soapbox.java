@@ -24,6 +24,7 @@ import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 import ru.vadimka.nfswlauncher.AuthException;
+import ru.vadimka.nfswlauncher.Config;
 import ru.vadimka.nfswlauncher.Log;
 import ru.vadimka.nfswlauncher.Main;
 import ru.vadimka.nfswlauncher.ValueObjects.Account;
@@ -374,8 +375,8 @@ public class Soapbox implements ServerInterface {
 	@Override
 	public void launchGame() throws GameStartException {
 		if (!RWAC.checkBeforeStart()) throw new GameStartException(Main.locale.get("error_game_is_modified"));
-		//ServerRedirrect sr = new ServerRedirrect(Main.account.getServer().getIP(), 8080);
-		Main.account.getServer().setRedirrect(Main.account.getServer().getIP()/*sr.getLocalHost()*/);
+		if (Config.USE_REDIRECT)
+			Main.account.getServer().setRedirrect(8182);
 		Main.game = new Game(Main.account.getToken(), Main.account.getID(), Main.account.getServer().getProtocol().getServerEngine(), Main.getGameDir().getAbsolutePath()+File.separator+"nfsw.exe");
 		//Main.frame.loadingComplite();
 	}
