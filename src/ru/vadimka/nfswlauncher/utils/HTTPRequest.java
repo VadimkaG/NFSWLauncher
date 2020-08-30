@@ -4,9 +4,9 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.net.ConnectException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
+import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -271,10 +271,12 @@ public class HTTPRequest implements Runnable {
 			
 			if (requestThread != null)
 				requestThread.notifyAll();
-		} catch (ConnectException e) {
-			Log.getLogger().warning("Не удалось выполнить запрос. Время ожидания истекло. ["+ url.getHost()+url.getPath()+"]");
+		} catch (SocketTimeoutException e) {
+			Log.getLogger().warning("[HTTPRequest] Не удалось выполнить запрос. Время ожидания истекло. ["+ url.getHost()+url.getPath()+"]");
+			ErrorAfterProc = true;
+			actionAfterRequest.error();
 		} catch (IOException e) {
-			Log.getLogger().log(Level.WARNING,"Не удалось выполнить запрос", e);
+			Log.getLogger().log(Level.WARNING,"[HTTPRequest] Не удалось выполнить запрос", e);
 			ErrorAfterProc = true;
 			actionAfterRequest.error();
 		/**

@@ -24,6 +24,13 @@ public class ServerVO {
 		return IP;
 	}
 	/**
+	 * Установить IP
+	 * @param ip
+	 */
+	public void setIP(String ip) {
+		IP = ip;
+	}
+	/**
 	 * Использует ли сервер https протокол
 	 * @return true = https false = http
 	 */

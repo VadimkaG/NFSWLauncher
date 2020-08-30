@@ -1,14 +1,10 @@
 package ru.vadimka.nfswlauncher.theme;
 
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.StringReader;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -16,7 +12,6 @@ import java.util.logging.Level;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.Result;
 import javax.xml.transform.Source;
 import javax.xml.transform.Transformer;
@@ -25,11 +20,8 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
 import org.w3c.dom.Document;
-import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
 
 import ru.vadimka.nfswlauncher.Config;
 import ru.vadimka.nfswlauncher.Locale;
@@ -40,163 +32,32 @@ import ru.vadimka.nfswlauncher.ValueObjects.ClientSettings;
 import ru.vadimka.nfswlauncher.ValueObjects.ServerVO;
 import ru.vadimka.nfswlauncher.client.Game;
 import ru.vadimka.nfswlauncher.client.GameStartException;
-import ru.vadimka.nfswlauncher.utils.AsyncTasksUtils;
-import ru.vadimka.nfswlauncher.utils.HTTPRequest;
+import ru.vadimka.nfswlauncher.utils.ServerList;
 
 public class GraphActions {
 	/**
 	 * Получить список серверов
 	 */
 	public static List<ServerVO> getServerList() {
-		
-		final List<ServerVO> servers = new ArrayList<ServerVO>();
-		final List<ServerVO> serversOnline = new ArrayList<ServerVO>();
-		
-		// Подгрузка списка серверов из онлайн
-		
-		AsyncTasksUtils.addTask(() -> {
-			try {
-				HTTPRequest.ActionAutoContainer response = new HTTPRequest.ActionAutoContainer();
-				HTTPRequest request = new HTTPRequest(Config.SERVERS_LIST_LINK,response);
-				
-				request.proc();
-				request.waitResponse();
-				
-				String xml = response.toString();
-				
-				InputSource source = new InputSource(new StringReader(xml));
-				DocumentBuilder documentBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-				Document document = documentBuilder.parse(source);
-				
-				Node Servers = document.getDocumentElement();
-				NodeList items = Servers.getChildNodes();
-				
-				for (int i = 0; i < items.getLength(); i++) {
-					Node server = items.item(i);
-					if (
-							server.getNodeName() == "server" && 
-							server.getAttributes().getNamedItem("protocol") != null && 
-							server.getAttributes().getNamedItem("ip") != null) {
-						
-						final String protocol = new String(server.getAttributes().getNamedItem("protocol").getTextContent());
-						final String ip = new String(server.getAttributes().getNamedItem("ip").getTextContent());
-						final String name = new String(server.getTextContent());
-						
-						boolean isHttps = false;
-						if (server.getAttributes().getNamedItem("https") != null  && server.getAttributes().getNamedItem("https").getTextContent().equalsIgnoreCase("true"))
-							isHttps = true;
-						
-						ServerVO vo = new ServerVO(ip,name,isHttps);
-						vo.setProtocol(Main.genProtocolByName(protocol,vo));
-						serversOnline.add(vo);
-					}
-				}
-			} catch (SAXException e) {
-				Log.getLogger().warning("Ошибка разбора синтаксиса, при попытке обновить список серверов.");
-			} catch (ParserConfigurationException e) {
-				Log.getLogger().warning("Ошибка разбора данных, при попытке обновить список серверов.");
-			} catch (UnknownHostException e) {
-				Log.getLogger().warning("Не удалось соединиться с сервером, чтобы получить список серверов.");
-			} catch (IOException e) {
-				Log.getLogger().log(Level.WARNING,"Ошибка при попытке получить список серверов.",e);
-			}
-		
-		},"Загрузка списка серверов из онлайн");
-		
-		// ======= end =========
-		
-		// Подгрузка серверов из xml на компьютере
-		
-		AsyncTasksUtils.addTask(() -> {
-			try {
-		
-				File custom_servers = new File(Main.getConfigDir()+File.separator+"servers.xml");
-				
-				if (custom_servers.exists() && custom_servers.canRead()) {
-					DocumentBuilder documentBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-					Document document = documentBuilder.parse("file:///"+custom_servers.getAbsolutePath());
-					
-					Element Servers = document.getDocumentElement();
-					NodeList items = Servers.getChildNodes();
-					
-					for (int i = 0; i < items.getLength(); i++) {
-						Node server = items.item(i);
-						if (server.getNodeName() == "server") {
-							if (server.getAttributes().getNamedItem("ip") == null || server.getAttributes().getNamedItem("protocol").getTextContent() == null) {
-								continue;
-							}
-							boolean isHttps = false;
-							if (
-									server.getAttributes().getNamedItem("https") != null
-										&&
-									server.getAttributes().getNamedItem("https").getTextContent().equalsIgnoreCase("true")
-								) isHttps = true;
-							ServerVO vo = new ServerVO(server.getAttributes().getNamedItem("ip").getTextContent(),server.getTextContent(),isHttps);
-							vo.setProtocol(Main.genProtocolByName(server.getAttributes().getNamedItem("protocol").getTextContent(),vo));
-							servers.add(vo);
-						}
-					}
-				}
-			} catch (SAXException e) {
-				Log.getLogger().warning("Ошибка разбора синтаксиса, при попытке обновить список серверов.");
-			} catch (ParserConfigurationException e) {
-				Log.getLogger().warning("Ошибка разбора данных, при попытке обновить список серверов.");
-			} catch (UnknownHostException e) {
-				Log.getLogger().warning("Не удалось соединиться с сервером, чтобы получить список серверов.");
-			} catch (IOException e) {
-				Log.getLogger().log(Level.WARNING,"Ошибка при попытке получить список серверов.",e);
-			}
-		
-		},"Загрузка списка серверов из кэша");
-		
-		// ======= end ========
-		
-		try {
-			AsyncTasksUtils.waitTasks(10);
-		} catch (InterruptedException e) {}
-		
-		boolean needUpdate = false;
-		for (ServerVO server : serversOnline) {
-			boolean server_exists = false;
-			for (ServerVO s: servers) {
-				if (s.getIP().equalsIgnoreCase(server.getIP())) {
-					server_exists = true;
-				}
-			}
-			if (!server_exists) {
-				needUpdate = true;
-				servers.add(server);
-			}
-		}
-		
-		if (needUpdate) {
-			AsyncTasksUtils.addTask(() -> {
-				String xml = "<servers>\n";
-				for (ServerVO server: servers) {
-					xml += "\t<server\n"
-						+  "\t\tip=\""+server.getIP()+"\"\n"
-						+  "\t\tprotocol=\""+server.getProtocol().getNameProtocol()+"\"\n"
-						+  "\t\thttps=\""+(server.isHttps()?"true":"false")+"\"\n"
-						+  "\t\t>"+server.getName()+"</server>\n";
-				}
-				xml += "</servers>";
-				File custom_servers = new File(Main.getConfigDir()+File.separator+"servers.xml");
-				if ((custom_servers.exists() && custom_servers.canWrite()) || custom_servers.getParentFile().canWrite()) {
-					try {
-						BufferedWriter bw = new BufferedWriter(new FileWriter(custom_servers));
-						bw.write(xml);
-						bw.close();
-					} catch (IOException e) {
-						Log.getLogger().warning("Не удалось записать список серверов в кэш");
-					}
-				} else {
-					Log.getLogger().warning("Кэш серверов не сохранен. Нет прав на обновление/запись файла: "+custom_servers.getAbsolutePath());
-				}
-			}, "Обновление кэша списка серверов");
-		}
-
-		
-		return servers;
+		if (ServerList.getListChached().size() < 1)
+			return new ArrayList<ServerVO>(ServerList.getList());
+		else
+			return new ArrayList<ServerVO>(ServerList.getListChached().values());
+	}
+	/**
+	 * Удалить сервер из кэша
+	 * @param name - Имя сервера
+	 */
+	public static void deleteServerFromChache(String name) {
+		ServerList.loadChache();
+		ServerList.deleteServerFromChache(name);
+		ServerList.saveChache();
+	}
+	public static void addServerToChache(String ip, String name, boolean isHttps, String protocol) {
+		ServerVO server = new ServerVO(ip, name, isHttps);
+		server.setProtocol(Main.genProtocolByName(protocol, server));
+		ServerList.addServerToChache(server);
+		ServerList.saveChache();
 	}
 	/**
 	 * Получить текущую локализацию

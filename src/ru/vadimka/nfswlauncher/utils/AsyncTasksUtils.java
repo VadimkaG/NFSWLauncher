@@ -25,12 +25,12 @@ public class AsyncTasksUtils {
 	private AsyncTasksUtils() {}
 	
 	private static final int MaxThreads = 20;
-	private static HashMap<Integer,CustomTask> runningTasks;
+	private static HashMap<Integer,Task> runningTasks;
 	
 	private static Stack<AsyncTasksUtils.Task> tasks = new Stack<AsyncTasksUtils.Task>();
 	
-	private static void next() {
-		if (runningTasks == null) runningTasks = new HashMap<Integer,CustomTask>();
+	protected static void next() {
+		if (runningTasks == null) runningTasks = new HashMap<Integer,Task>();
 		if (runningTasks.size() < MaxThreads) {
 			synchronized (call()) {
 				if(tasks.isEmpty()) {
@@ -40,14 +40,11 @@ public class AsyncTasksUtils {
 					}
 					return;
 				} else {
-						Runnable t = tasks.pop();
-						Thread th = new Thread(t);
-						CustomTask ct= (CustomTask) t;
+						Task t = tasks.pop();
 						IdCounter++;
-						ct.setId(IdCounter);
-						ct.setParentThread(th);
-						runningTasks.put(Integer.valueOf(IdCounter),ct);
-						th.start();
+						t.setId(IdCounter);
+						runningTasks.put(IdCounter,t);
+						t.start();
 				}
 			}
 		} 
@@ -69,7 +66,7 @@ public class AsyncTasksUtils {
 				if (runningTasks.size() > 0) {
 					Log.getLogger().warning("Внимание! Прошло "+seconds+" секунд, но еще осталось "+runningTasks.size()+" задач.");
 					Log.getLogger().warning("\tЗадачи: "+runningTasks);
-					for (Entry<Integer, CustomTask> ct : runningTasks.entrySet()) {
+					for (Entry<Integer, Task> ct : runningTasks.entrySet()) {
 						Log.getLogger().warning("\tЗадача: "+ct.getValue());
 						ct.getValue().getPagentThread().interrupt();
 					}
@@ -90,7 +87,7 @@ public class AsyncTasksUtils {
 			call().wait(5000);
 			if (runningTasks.size() > 0) {
 				Log.getLogger().warning("Внимание! Прошло 5-ть секунд, но еще осталось "+runningTasks.size()+" задач.");
-				for (Entry<Integer, CustomTask> ct : runningTasks.entrySet()) {
+				for (Entry<Integer, Task> ct : runningTasks.entrySet()) {
 					Log.getLogger().warning("\tЗадача: "+ct.getValue());
 					ct.getValue().getPagentThread().interrupt();
 				}
@@ -101,11 +98,13 @@ public class AsyncTasksUtils {
 	}
 	/**
 	 * Добавить новую задачу
-	 * @param task - Метод задачи
+	 * @param method - Метод задачи
 	 */
-	public static void addTask(Runnable task, String name) {
-		tasks.add(new Task(task, name));
+	public static Task addTask(Runnable method) {
+		Task task = new Task(method);
+		tasks.add(task);
 		next();
+		return task;
 	}
 	/**
 	 * Остались ли задачи в работе
@@ -115,43 +114,28 @@ public class AsyncTasksUtils {
 		if (runningTasks.size() > 0) return true;
 		return false;
 	}
-	private interface CustomTask{
-		String getName();
-		int getId();
-		void setId(int id);
-		Thread getPagentThread();
-		void setParentThread(Thread parent);
-	}
 	/**
 	 * Контроллер задач
 	 */
-	private static class Task implements CustomTask,Runnable {
+	protected static class Task implements Runnable {
 		
 		public Runnable FUNC;
-		private String NAME;
 		private int ID;
-		
-		public Task(Runnable func, String name) {
+		private Thread PARENT;
+
+		public Task(Runnable func) {
 			FUNC = func;
-			NAME = name;
+			PARENT = new Thread(this);
 		}
-		
-		@Override
+
 		public void setId(int id) {
 			ID = id;
 		}
 
-		@Override
 		public int getId() {
 			return ID;
 		}
-
-		@Override
-		public String getName() {
-			return NAME;
-		}
 		
-		@Override
 		public void run() {
 			FUNC.run();
 			synchronized (call()) {
@@ -160,45 +144,16 @@ public class AsyncTasksUtils {
 			next();
 		}
 		
-		private Thread PARENT;
-		
-		@Override
 		public Thread getPagentThread() {
 			return PARENT;
 		}
-
-		@Override
-		public void setParentThread(Thread parent) {
-			PARENT = parent;
-		}
 		
-		@Override
 		public String toString() {
-			return "["+getId()+"] "+getName();
-		}
-	}
-	/**
-	 * Задача с параметрами
-	 */
-	public static abstract class ParamTask implements CustomTask,Runnable {
-		
-		public Object[] PARAMS;
-		
-		public ParamTask(Object[] params) {
-			PARAMS = params.clone();
+			return "Task."+getId();
 		}
 
-		private Thread PARENT;
-		@Override
-		public Thread getPagentThread() {
-			return PARENT;
+		public void start() {
+			PARENT.start();
 		}
-
-		@Override
-		public void setParentThread(Thread parent) {
-			PARENT = parent;
-		}
-		
 	}
-	
 }

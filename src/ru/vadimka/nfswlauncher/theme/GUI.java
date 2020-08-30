@@ -23,6 +23,7 @@ import java.util.logging.Level;
 
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
+import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -56,6 +57,8 @@ import ru.vadimka.nfswlauncher.ValueObjects.PerformanceLevel;
 import ru.vadimka.nfswlauncher.ValueObjects.ServerVO;
 import ru.vadimka.nfswlauncher.theme.GUIResourseLoader.Loader;
 import ru.vadimka.nfswlauncher.theme.customcomponents.ButtonC;
+import ru.vadimka.nfswlauncher.theme.customcomponents.CheckBoxC;
+import ru.vadimka.nfswlauncher.theme.customcomponents.ComboBoxC;
 import ru.vadimka.nfswlauncher.theme.customcomponents.DynBgC;
 import ru.vadimka.nfswlauncher.theme.customcomponents.FieldC;
 import ru.vadimka.nfswlauncher.theme.customcomponents.ImageC;
@@ -360,6 +363,67 @@ public class GUI extends JFrame implements GraphModule {
 		lblAuth.setForeground(Color.WHITE);
 		lblAuth.setBounds(100, 55, 153, 39);
 		loginPanel.add(lblAuth);
+		
+		ButtonC addServerBtn = new ButtonC("+");
+		ButtonC delServerBtn = new ButtonC("-");
+		
+		addServerBtn.setBounds(410, 182, 50, 20);
+		addServerBtn.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				addServerBtn.setEnabled(false);
+				delServerBtn.setEnabled(false);
+				serverLV.setEnabled(false);
+				FieldC ip = new FieldC(GraphActions.getLocale().get("server_add_ip"));
+				FieldC name = new FieldC(GraphActions.getLocale().get("server_add_name"));
+				ComboBoxC<String> protocols = new ComboBoxC<String>(GraphActions.getLocale().get("server_add_protocol"));
+				for ( String protocol :Main.getProtocols()) {
+					protocols.addItem(protocol);
+				}
+				CheckBoxC https = new CheckBoxC(GraphActions.getLocale().get("server_add_https"));
+				final JComponent[] inputs = new JComponent[] {
+						name,
+						ip,
+						https,
+						new JLabel(GraphActions.getLocale().get("server_add_protocol")),
+						protocols
+				};
+				int result = JOptionPane.showConfirmDialog(null, inputs, GraphActions.getLocale().get("server_add"), JOptionPane.PLAIN_MESSAGE);
+				if (result == JOptionPane.OK_OPTION) {
+					GraphActions.addServerToChache(
+						ip.getText(),
+						name.getText(),
+						https.isSelected(),
+						protocols.getSelectedItem().toString()
+					);
+				}
+				updateServers(GraphActions.getServerList());
+				addServerBtn.setEnabled(true);
+				delServerBtn.setEnabled(true);
+				serverLV.setEnabled(true);
+			}
+		});
+		loginPanel.add(addServerBtn);
+		delServerBtn.setBounds(410, 212, 50, 20);
+		delServerBtn.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				ServerVO currentServer = serverLV.getSelectedValue();
+				if (currentServer != null) {
+					addServerBtn.setEnabled(false);
+					delServerBtn.setEnabled(false);
+					serverLV.setEnabled(false);
+					GraphActions.deleteServerFromChache(currentServer.getName());
+					updateServers(GraphActions.getServerList());
+					addServerBtn.setEnabled(true);
+					delServerBtn.setEnabled(true);
+					serverLV.setEnabled(true);
+				}
+			}
+		});
+		loginPanel.add(delServerBtn);
+		
 		serverLV = new JList<ServerVO>(serverList);
 		serverLV.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		serverLV.addListSelectionListener(new ListSelectionListener() {
@@ -368,6 +432,8 @@ public class GUI extends JFrame implements GraphModule {
 				if (GraphActions.getCurrentServer() != null && GraphActions.getCurrentServer().getIP().equalsIgnoreCase(serverLV.getSelectedValue().getIP())) return;
 				//Log.print("Выбран сервер "+serverLV.getSelectedValue().getName());
 				//loading();
+				addServerBtn.setEnabled(false);
+				delServerBtn.setEnabled(false);
 				serverLV.setEnabled(false);
 				new Thread(() -> {
 					ServerVO server = serverLV.getSelectedValue();
@@ -380,12 +446,16 @@ public class GUI extends JFrame implements GraphModule {
 								} catch (InterruptedException e) {}
 								updateLoginWindow();
 								serverLV.setEnabled(true);
+								addServerBtn.setEnabled(true);
+								delServerBtn.setEnabled(true);
 							});
 						}
 						@Override
 						public void error() {
 							updateLoginWindow();
 							serverLV.setEnabled(true);
+							addServerBtn.setEnabled(true);
+							delServerBtn.setEnabled(true);
 						}
 					});
 					GraphActions.setServer(server);
@@ -395,6 +465,7 @@ public class GUI extends JFrame implements GraphModule {
 		JScrollPane serverPane = new JScrollPane(serverLV);
 		serverPane.setBounds(465, 182, 214, 101);
 		loginPanel.add(serverPane);
+		
 		ImageC back = new ImageC(GUIResourseLoader.getTabFirstIS(),670,430);
 		back.setBounds(100, 55, 670, 430);
 		loginPanel.add(back);

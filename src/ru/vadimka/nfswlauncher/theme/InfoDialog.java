@@ -24,16 +24,13 @@ public class InfoDialog {
 			"Разработчик лаунчера: Vadimka - vadik.golubeff@yandex.ru\n"+
 			"Автор дизайна: Ryan Cooper - Discord: Ryan Cooper (Cooperyan)#9057\n"+
 			"Что изменилось в этой версии:\n"+
-			"- Добавлен вывод лога игры в лог лаунчера\n"+
-			"- Добавлена кнопка очистки настроек лаунчера\n"+
-			"- Добавлен кэш серверов.\n"+
-			"  Теперь если онлайн список серверов будет не доступен\n"+
-			"  список серверов будет подгружен из сохраненного ранее списка.\n"+
-			"- В английском переводе добавлены некоторые фразы,\n"+
-			"  которые ранее не были переведены\n"+
-			"- Теперь WINE выводит отладку в лог лаунчера.\n"+
-			"- Обновлен RWAC. Теперь он перепроверяет файлы тщательнее.\n"+
-			"  Не шалите, играйте честно.";
+			"- Изменен алгоритм слияния онлайн списка сервера и кэша.\n"+
+			"  Теперь он будет работать правильнее и чуть быстрее.\n"+
+			"- Добавлены кнопки управления кэшем списка серверов.\n"+
+			"  Тепер вы можете добавить свой сервер в список.\n"+
+			"  Обратите внимание, что добавленый сервер видите только вы.\n"+
+			"  Также у вас не удастся удалить сервера из онлайн списка.\n"+
+			"  'Онлайн' список проверяется каждый раз при открытии окна авторизации.\n";
 		default:
 			return "Launcher version: "+Config.VERSION+"\n"+
 			"Design version: "+DESIGN_VERSION+"\n"+
@@ -43,13 +40,13 @@ public class InfoDialog {
 			"- Added output of the game log to the launcher log\n"+
 			"- Added button that clears launcher settings\n"+
 			"- Added server cache.\n"+
-			"  Now if the online server list is not available\n"+
-			"  the list of servers will be loaded from a previously saved list.\n"+
-			"- In the English translation, some messages have been added,\n"+
-			"  that were not previously translated\n"+
-			"- Now WINE displays debugging in the launcher log.\n"+
-			"- Updated RWAC. Now he double-checks the files more carefully.\n"+
-			"  Don't be naughty, play fair";
+			"- Changed the algorithm for merging the online server list and cache.\n"+
+			"  Now it will work more correctly and a little faster.\n"+
+			"- Added buttons for managing the server list cache.\n"+
+			"  Now you can add your server to the list.\n"+
+			"  Please note that only you can see the added server.\n"+
+			"  Attention! You cannot remove servers from the online list.\n"+
+			"  The 'online' list is checked every time the login window is opened.\n";
 		}
 	}
 	

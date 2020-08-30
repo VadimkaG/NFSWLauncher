@@ -12,6 +12,9 @@ public class CheckBoxC extends JCheckBox {
 		super();
 		super.setSelected(b);
 	}
+	public CheckBoxC(String label) {
+		super(label);
+	}
 	public CheckBoxC(ActionListener act) {
 		super();
 		addActionListener(act);

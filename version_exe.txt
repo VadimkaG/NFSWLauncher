@@ -1,1 +1,1 @@
-0.15.3.1_exe;https://www.dropbox.com/s/9qr20m3fpcuz34m/welauncher.exe?dl=1
+0.15.4_exe;https://www.dropbox.com/s/9qr20m3fpcuz34m/welauncher.exe?dl=1

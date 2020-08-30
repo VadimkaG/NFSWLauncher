@@ -13,6 +13,7 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
@@ -214,6 +215,17 @@ public abstract class Main {
 		default:
 			return new Soapbox(vo);
 		}
+	}
+	/**
+	 * Получить список протоколов
+	 * @return
+	 */
+	public static List<String> getProtocols() {
+		List<String> protocols = new ArrayList<String>();
+		protocols.add("soapbox");
+		protocols.add("soapbox-Locked");
+		protocols.add("RacingWorld");
+		return protocols;
 	}
 	/**
 	 * Проверить вышло ли обновление лаунчера
