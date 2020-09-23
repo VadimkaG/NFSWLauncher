@@ -71,8 +71,10 @@ public abstract class ServerList {
 		for (ServerVO server : serversOnline) {
 			if (servers.containsKey(server.getName())) {
 				ServerVO chacheServer = servers.get(server.getName());
-				if (!chacheServer.getIP().equalsIgnoreCase(server.getIP()))
+				if (!chacheServer.getIP().equalsIgnoreCase(server.getIP())) {
 					chacheServer.setIP(server.getIP());
+					needUpdate = true;
+				}
 			} else {
 				servers.put(server.getName(), server);
 				needUpdate = true;
