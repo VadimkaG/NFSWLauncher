@@ -29,8 +29,8 @@ import ru.vadimka.nfswlauncher.Log;
 import ru.vadimka.nfswlauncher.Main;
 import ru.vadimka.nfswlauncher.ValueObjects.Account;
 import ru.vadimka.nfswlauncher.ValueObjects.ServerVO;
-import ru.vadimka.nfswlauncher.anticheat.RWAC;
-import ru.vadimka.nfswlauncher.anticheat.RWACIndex;
+import ru.vadimka.nfswlauncher.client.AntiCheat;
+import ru.vadimka.nfswlauncher.client.AntiCheatManager;
 import ru.vadimka.nfswlauncher.client.Game;
 import ru.vadimka.nfswlauncher.client.GameStartException;
 import ru.vadimka.nfswlauncher.utils.HTTPRequest;
@@ -44,7 +44,7 @@ public class Soapbox implements ServerInterface {
 	
 	protected boolean SERVER_ONLINE = false;
 	
-	protected RWACIndex RWACindex = null;
+	protected AntiCheat anticheat = null;
 	
 	private long PING = 0;
 	
@@ -328,11 +328,10 @@ public class Soapbox implements ServerInterface {
 						if (jo.containsKey("ServerPass"))
 							STORAGE.put("ssp", (String) jo.get("ServerPass"));
 						
-						if (jo.containsKey("rwacallow") && ((boolean)jo.get("rwacallow")) == true) {
-							RWACindex = new RWACIndex(
-								VO.getHttpLink()+"/soapbox-race-core/fileschecker"
-									);
-							RWACindex.download();
+						if (jo.containsKey("rwacAllow") && ((boolean)jo.get("rwacAllow")) == true) {
+							anticheat = AntiCheatManager.create(VO.getHttpLink()+"/soapbox-race-core/fileschecker");
+							if (anticheat != null)
+								anticheat.download();
 						}
 						
 					} catch (ParseException e) {
@@ -368,16 +367,28 @@ public class Soapbox implements ServerInterface {
 		return matcher.matches();
 	}
 	
-	public RWACIndex getRWACindex() {
-		return RWACindex;
+	public AntiCheat getAntiCheat() {
+		return anticheat;
 	}
 
 	@Override
 	public void launchGame() throws GameStartException {
-		if (!RWAC.checkBeforeStart()) throw new GameStartException(Main.locale.get("error_game_is_modified"));
+		if (anticheat != null) {
+			if (!anticheat.checkBeforeStart()) 
+				throw new GameStartException(Main.locale.get("error_game_is_modified"));
+		} else {
+			Log.getLogger().warning("Отсутствует античит. Этап проверки пропущен.");
+		}
 		if (Config.USE_REDIRECT)
 			Main.account.getServer().setRedirrect(8182);
-		Main.game = new Game(Main.account.getToken(), Main.account.getID(), Main.account.getServer().getProtocol().getServerEngine(), Main.getGameDir().getAbsolutePath()+File.separator+"nfsw.exe");
+		Main.game = new Game(
+				Main.account.getToken(), 
+				Main.account.getID(), 
+				Main.account.getServer().getProtocol().getServerEngine(), 
+				Main.getGameDir().getAbsolutePath()+File.separator+"nfsw.exe",
+				getAntiCheat()
+			);
+		Main.game.run();
 		//Main.frame.loadingComplite();
 	}
 

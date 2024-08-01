@@ -148,8 +148,8 @@ public class GUI extends JFrame implements GraphModule {
 				if (ke.getKeyCode()==KeyEvent.VK_L && ke.isAltDown())
 					Log.showLogWindow();
 				if (ke.getKeyCode()==KeyEvent.VK_ENTER && loading == false) {
-					if (GraphActions.isAuthed()) {
-						GraphActions.startGame();
+					if (isLogged && GraphActions.isAuthed()) {
+//						GraphActions.startGame();
 					} else {
 						login();
 					}
@@ -1114,6 +1114,7 @@ public class GUI extends JFrame implements GraphModule {
 			);
 	}
 	private void login() {
+		if (loading) return;
 		if (GraphActions.getCurrentServer() == null) {
 			infoDialog(GraphActions.getLocale().get("choose_server"), GraphActions.getLocale().get("auth_error_title"));
 			return;
@@ -1126,7 +1127,7 @@ public class GUI extends JFrame implements GraphModule {
 		try {
 			server.getProtocol().login(acc);
 			GraphActions.login(acc);
-			setLogin(true);
+			setLogin(acc.isAuth());
 			loadingComplite();
 		} catch (NullPointerException exn) {
 			errorDialog(GraphActions.getLocale().get("error_inner"), GraphActions.getLocale().get("auth_error_title"));

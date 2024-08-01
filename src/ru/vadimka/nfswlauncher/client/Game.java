@@ -16,8 +16,6 @@ import ru.vadimka.nfswlauncher.AuthException;
 import ru.vadimka.nfswlauncher.Config;
 import ru.vadimka.nfswlauncher.Log;
 import ru.vadimka.nfswlauncher.Main;
-import ru.vadimka.nfswlauncher.ProcessUtils;
-import ru.vadimka.nfswlauncher.anticheat.RWAC;
 import ru.vadimka.nfswlauncher.theme.GraphActions;
 import ru.vadimka.nfswlauncher.utils.DiscordController;
 
@@ -26,41 +24,51 @@ public class Game {
 	private Process game;
 	private boolean exitNeeded = true;
 	private boolean success_start;
+	ProcessBuilder builder;
+	AntiCheat anticheat;
 	
-	public Game(String token, String userId, String serverEnginePath, String gamePath) {
+	public Game(String token, String userId, String serverEnginePath, String gamePath,AntiCheat anticheat) {
 		success_start = false;
+		if (Config.WINE_PATH.equalsIgnoreCase("")) {
+			builder = new ProcessBuilder(gamePath, Main.getSystemLanguage().toUpperCase(), serverEnginePath, token, userId);
+		} else {
+			builder = new ProcessBuilder(Config.WINE_PATH, gamePath, Main.getSystemLanguage(), serverEnginePath, token, userId);
+			Map<String,String> env = builder.environment();
+			env.put("WINEPREFIX", Config.WINE_PREFIX);
+			env.put("WINEDEBUG", "fixme-all,warn+all");
+			/*Log.getLogger().info(
+					"WINEPREFIX=\""+Config.WINE_PREFIX+"\" "
+					+"WINEDEBUG=fixme-all,warn+all "
+					+"\""+Config.WINE_PATH+"\" "
+					+"\""+gamePath+"\" "
+					+Main.getSystemLanguage().toUpperCase()
+					+" \""+serverEnginePath+"\" "
+					+token+" "
+					+userId
+				);*/
+		}
+	}
+	public void run () {
+		if (builder == null) {
+			Log.getLogger().warning("Не удалось сформировать процесс игры. Дальнейший запуск невозможен");
+			Main.frame.errorDialog("Процесс не сформирован", "Не удалось запустить игру");
+			return;
+		}
 		try {
 			if (Main.frame != null)
 				Main.frame.loading();
 			if (Config.USE_REDIRECT)
 				Main.account.getServer().getRedirectServer().start();
-			ProcessBuilder builder;
-			if (Config.WINE_PATH.equalsIgnoreCase("")) {
-				builder = new ProcessBuilder(gamePath, Main.getSystemLanguage().toUpperCase(), serverEnginePath, token, userId);
-			} else {
-				builder = new ProcessBuilder(Config.WINE_PATH, gamePath, Main.getSystemLanguage(), serverEnginePath, token, userId);
-				Map<String,String> env = builder.environment();
-				env.put("WINEPREFIX", Config.WINE_PREFIX);
-				env.put("WINEDEBUG", "fixme-all,warn+all");
-				/*Log.getLogger().info(
-						"WINEPREFIX=\""+Config.WINE_PREFIX+"\" "
-						+"WINEDEBUG=fixme-all,warn+all "
-						+"\""+Config.WINE_PATH+"\" "
-						+"\""+gamePath+"\" "
-						+Main.getSystemLanguage().toUpperCase()
-						+" \""+serverEnginePath+"\" "
-						+token+" "
-						+userId
-					);*/
-			}
 			Log.getLogger().info("Запуск игры и скрытие GUI лаунчера...");
 			game = builder.start();
 			DiscordController.updateState("Играет на "+Main.account.getServer().getProtocol().get("SERVER_NAME"), "Игра запущена");
 			inputReader.start();
 			inputErrReader.start();
 			
-			Timer timer = new Timer();
-			timer.schedule(RWACcheck, 6000);
+			if (anticheat!= null) {
+				Timer timer = new Timer();
+				timer.schedule(RWACcheck, 6000);
+			}
 			
 			Main.destroyGraphic();
 			new Thread(waitForGameStoped).start();
@@ -230,7 +238,7 @@ public class Game {
 				  (random.nextFloat() * (rightLimit - leftLimit + 1));
 				buffer.append((char) randomLimitedInt);
 			}
-			if (!RWAC.checkRepitedly() && game.isAlive()) game.destroy();
+			if (!anticheat.checkRepitedly() && game.isAlive()) game.destroy();
 			String windowTitle = "Racing World (AntiCheat-" + buffer.toString() + ")";
 			if (Main.getPlatform().equalsIgnoreCase("Windows") && !System.getProperty("os.name").equalsIgnoreCase("Windows XP")) {
 				try {
@@ -238,7 +246,7 @@ public class Game {
 					f.setAccessible(true);
 					final long handle = f.getLong(game);
 					f.setAccessible(false);
-					ProcessUtils.renameTitle(windowTitle, handle);
+					anticheat.renameProcess(windowTitle, handle);
 				}
 				catch (UnsatisfiedLinkError | IllegalArgumentException | IllegalAccessException | NoSuchFieldException | SecurityException e) {
 					Log.getLogger().log(Level.WARNING, "\u041e\u0448\u0438\u0431\u043a\u0430: \u041e\u0431\u043d\u0430\u0440\u0443\u0436\u0435\u043d\u0430 \u043f\u043e\u043f\u044b\u0442\u043a\u0430 \u043e\u0431\u0445\u043e\u0434\u0430 RWAC. \u0418\u0433\u0440\u0430 \u0443\u043d\u0438\u0447\u0442\u043e\u0436\u0435\u043d\u0430.", e);

@@ -1,1 +1,1 @@
-0.15.4.2;https://www.dropbox.com/s/tmiei8pjeu0qvie/NFSWlauncher.jar?dl=1
+0.15.4.3;https://github.com/VadimkaG/NFSWLauncher/releases/download/0.15.4.3/RacingWorld.jar

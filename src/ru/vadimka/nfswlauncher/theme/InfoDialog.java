@@ -24,29 +24,18 @@ public class InfoDialog {
 			"Разработчик лаунчера: Vadimka - vadik.golubeff@yandex.ru\n"+
 			"Автор дизайна: Ryan Cooper - Discord: Ryan Cooper (Cooperyan)#9057\n"+
 			"Что изменилось в этой версии:\n"+
-			"- Изменен алгоритм слияния онлайн списка сервера и кэша.\n"+
-			"  Теперь он будет работать правильнее и чуть быстрее.\n"+
-			"- Добавлены кнопки управления кэшем списка серверов.\n"+
-			"  Тепер вы можете добавить свой сервер в список.\n"+
-			"  Обратите внимание, что добавленый сервер видите только вы.\n"+
-			"  Также у вас не удастся удалить сервера из онлайн списка.\n"+
-			"  'Онлайн' список проверяется каждый раз при открытии окна авторизации.\n";
+			"- Небольшие фиксы в алгоритме запуска игры.\n"+
+			"- Убран запуск игры по Enter из-за бага с рассинхроном\n  и пропуска ошибок авторизации.\n"+
+			"- Изменен параметр обнаружения RWAC (тонкая подстройка под\n  новые версии сервера WorldEvolved).\n";
 		default:
 			return "Launcher version: "+Config.VERSION+"\n"+
 			"Design version: "+DESIGN_VERSION+"\n"+
 			"Launcher developer: Vadimka - vadik.golubeff@yandex.ru\n"+
 			"Design author: Ryan Cooper - Discord: Ryan Cooper (Cooperyan)#9057\n"+
 			"What has changed in this version:\n"+
-			"- Added output of the game log to the launcher log\n"+
-			"- Added button that clears launcher settings\n"+
-			"- Added server cache.\n"+
-			"- Changed the algorithm for merging the online server list and cache.\n"+
-			"  Now it will work more correctly and a little faster.\n"+
-			"- Added buttons for managing the server list cache.\n"+
-			"  Now you can add your server to the list.\n"+
-			"  Please note that only you can see the added server.\n"+
-			"  Attention! You cannot remove servers from the online list.\n"+
-			"  The 'online' list is checked every time the login window is opened.\n";
+			"- Minor fixes in the game launch algorithm.\n"+
+			"- Removed game launch by Enter due to a bug with desynchronization\n and skipping authorization errors\n"+
+			"- Changed RWAC detection parameter (fine-tuning for\n new versions of WorldEvolved server).\n";
 		}
 	}
 	

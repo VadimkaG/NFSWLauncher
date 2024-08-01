@@ -2,7 +2,7 @@ package ru.vadimka.nfswlauncher.protocol;
 
 import ru.vadimka.nfswlauncher.AuthException;
 import ru.vadimka.nfswlauncher.ValueObjects.Account;
-import ru.vadimka.nfswlauncher.anticheat.RWACIndex;
+import ru.vadimka.nfswlauncher.client.AntiCheat;
 import ru.vadimka.nfswlauncher.client.GameStartException;
 
 public interface ServerInterface {
@@ -54,9 +54,9 @@ public interface ServerInterface {
 	 */
 	public void ping();
 	/**
-	 * Получить индекс-xml RWAC
+	 * Получить обЬект античита или null если не задан
 	 */
-	public RWACIndex getRWACindex();
+	public AntiCheat getAntiCheat();
 	/**
 	 * Запустить игру
 	 * @throws Exception - Ошибка при запуске игры

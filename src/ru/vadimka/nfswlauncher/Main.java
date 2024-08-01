@@ -142,14 +142,19 @@ public abstract class Main {
 			account = new Account(new ServerVO(Config.SERVER_LINK, Config.SERVER_NAME,false), Config.USER_LOGIN, Config.USER_PASSWORD);
 			account.getServer().setProtocol(genProtocolByName(Config.SERVER_PROTOCOL, account.getServer()));
 			try {
-				if (autoauth && !account.getLogin().equalsIgnoreCase("") && !account.getServer().getIP().equalsIgnoreCase("")) {
-					account.getServer().getProtocol().login(account);
-					account.getServer().getProtocol().getResponse();
-					Log.getLogger().info("Авторизация успешна. login: "+account.getLogin());
-					frame.setLogin(true);
-				} else {
-					if (account != null && account.getServer().getProtocol() != null)
+				if (!account.getServer().getIP().isEmpty()) {
+					if (autoauth && !account.getLogin().isEmpty()) {
+						account.getServer().getProtocol().login(account);
 						account.getServer().getProtocol().getResponse();
+						Log.getLogger().info("Авторизация успешна. login: "+account.getLogin());
+						frame.setLogin(true);
+					} else {
+						if (account.getServer().getProtocol() != null)
+							account.getServer().getProtocol().getResponse();
+						frame.updateServers(GraphActions.getServerList());
+						frame.setLogin(false);
+					}
+				} else {
 					frame.updateServers(GraphActions.getServerList());
 					frame.setLogin(false);
 				}
